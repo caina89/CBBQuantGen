@@ -103,7 +103,7 @@ gatk --java-options "-Xms2G -Xmx2G -XX:ParallelGCThreads=2" GenotypeGVCFs \
 Raw variant calls can include many artifacts, and this is captured in many metrics (called "annotations") that are output in the joint calling step. These include: QD (Variant confidence normalized by unfiltered depth of variant samples), MQ (Root mean square of the mapping quality of reads across all samples), MQRankSum (Rank sum test for mapping qualities of REF versus ALT reads), ReadPosRankSum (Rank sum test for relative positioning of REF versus ALT alleles within reads), FS (Strand bias estimated using Fisher's exact test) and SOR (Strand bias estimated by the symmetric odds ratio test). A comprehensive list of all available annotations can be found [here](https://gatk.broadinstitute.org/hc/en-us/articles/30331989211419--Tool-Documentation-Index#VariantAnnotations) though what to use is dependent on the project and the sequencing data input. 
 ### Variant quality score recalibration
 [Variant quality score recalibration (VQSR) in GATK](https://gatk.broadinstitute.org/hc/en-us/articles/360035531612-Variant-Quality-Score-Recalibration-VQSR) works by builing a Gaussian Mixture Model of these annotations for all variants identified at the joint-calling step, and asking if they cluster with those of known human variations (training sets - can supply multiple) previously identified in other projects (note, this can be the same ones as used in BQSR step earlier). 
-We would also supply a range of "tranches", which are percentage specificity to known variants in the "positive" set we'd identify as true variants in the analysed dataset i.e. 100.0 would contain only known variants supplied in the training sets, 90.0 would mean the positive set contains 90% known variants. Usually, a lot of tranches in the 90-100 range are given, since we expect a new variant call set to be majority known (and contain very few novel, rare variants). Through doing this, VQSR generates a new quality score called the VQSLOD, a log-ratio of the variant’s probabilities belonging to the positive and negative sets. The purpose of this new score is to enable variant filtering in a way that allows analysts to balance sensitivity (trying to discover all the real variants) and specificity (trying to limit the false positives that creep in when filters get too lenient) as finely as possible. 
+We would also supply a range of "tranches", which are percentage specificity to known variants in the "positive" set we'd identify as true variants in the analysed dataset i.e. 100.0 would contain only known variants supplied in the training sets, 90.0 would mean the positive set contains 90% known variants. Usually, a lot of tranches in the 90-100 range are given, since we expect a new variant call set to be majority known (and contain very few novel, rare variants). Through doing this, VQSR generates a new quality score called the VQSLOD, a log-ratio of the variant’s probabilities belonging to the positive and negative sets given each of the tranches (selectivities). The purpose of this new score is to enable variant filtering in a way that allows analysts to balance sensitivity (trying to discover all the real variants) and specificity (trying to limit the false positives that creep in when filters get too lenient) as finely as possible. 
 Also, notably, this step is usually better when performed on as many variants as possible. As the earlier step is done per chromosome to parallelize the process, usually VCFs from all chromosomes are merged before the VQSR step. 
 ```
 gatk --java-options "-Xms4G -Xmx4G -XX:ParallelGCThreads=2" VariantRecalibrator \
@@ -122,5 +122,16 @@ gatk --java-options "-Xms4G -Xmx4G -XX:ParallelGCThreads=2" VariantRecalibrator 
   -an QD -an MQ -an MQRankSum -an ReadPosRankSum -an FS -an SOR  \
   -mode SNP -O $wdir/data/allchr.recal --tranches-file $wdir/data/allchr.tranches \
   --rscript-file $wdir/data/allchr.plots.R
+```
+The output file ```$wdir/data/allchr.plots.R``` is inspected to identify the right "tranche" to select for SNPs, usually through assessing if the SNP Ti/Tv ratios of all variants in the tranche, including known and novel, are close to 2. The VQSLOD scores corresponding to the tranche the user finds ideal, in the ```$wdir/data/allchr.tranches``` file, are then applied in the ApplyVQSR step to determine if a variant has a PASS or FAIL in the QUAL column of the final, recalibrated, VCF file. As the Ti/Tv ratio metric can only be used on SNPs, usually the recalibration tranche is determined using SNPs, and the same tranche (and therefore VQSLOD cutoff) is applied to call INDELs.  
+```
+gatk --java-options "-Xms2G -Xmx2G -XX:ParallelGCThreads=2" ApplyVQSR \
+  -V $wdir/data/allchr.vcf.gz \
+  --recal-file $wdir/data/allchr.recal \
+  -mode SNP \
+  --tranches-file $wdir/data/allchr.tranches \
+  --truth-sensitivity-filter-level 99.9 \
+  --create-output-variant-index true \
+  -O $wdir/data/allchr.recalibrated_99.9.vcf.gz
 ```
 
