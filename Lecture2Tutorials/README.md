@@ -58,10 +58,43 @@ gatk --java-options "-Xms4G -Xmx4G -XX:ParallelGCThreads=2" BaseRecalibrator \
 ```
 This error model is applied in step 2, using ApplyBQSR. 
 ```
-gatk --java-options "-Djava.io.tmpdir=/lscratch/$SLURM_JOBID -Xms2G -Xmx2G -XX:ParallelGCThreads=2" ApplyBQSR \
+gatk --java-options "-Xms2G -Xmx2G -XX:ParallelGCThreads=2" ApplyBQSR \
   -I $wdir/data/NA12878.markdup.bam \
   -R $wdir/hg38/hg38.fa \
   --bqsr-recal-file $wdir/data/NA12878.markdup.bqsr.report \
   -O $wdir/data/NA12878.markdup.bqsr.bam
 ```
 ## Variant calling 
+The [GATK HaplotypeCaller] calls SNPs and indels simultaneously via local de-novo assembly of haplotypes in an active region. In other words, whenever the program encounters a region showing signs of variation, it discards the existing mapping information and completely reassembles the reads in that region. This allows the HaplotypeCaller to be more accurate when calling regions that are traditionally difficult to call, for example when they contain different types of variants close to each other. For each potentially variant site, the program applies Bayes' rule, using the likelihoods of alleles given the read data to calculate the likelihoods of each genotype per sample given the read data observed for that sample. The most likely genotype is then assigned to the sample.
+### Single-sample variant calling 
+Single-sample variant calling generates GVCF files, which records variant sites and groups non-variant sites into blocks during the calling process based on genotype quality. This is a way of compressing the VCF file without losing any sites in order to do joint analysis in subsequent steps.
+```
+gatk --java-options "-Xms20G -Xmx20G -XX:ParallelGCThreads=2" HaplotypeCaller \
+  -R $wdir/hg38/hg38.fa \
+  -I $wdir/data/NA12878.markdup.bqsr.bam \
+  -O $wdir/data/NA12878.markdup.bqsr.g.vcf.gz \
+  -ERC GVCF
+```
+### Generating a variant database 
+GVCFs are consolidated into a GenomicsDB datastore in order to improve scalability and speedup the next step: joint genotyping. This step can be done per chromosome, so that the next step can be run in parallel across all chromosomes and therefore speedup the process. 
+```
+j=20
+gatk --java-options "-Xms2G -Xmx2G -XX:ParallelGCThreads=2" GenomicsDBImport \
+  --genomicsdb-workspace-path $wdir/data/chr${j}db \
+  -R $wdir/hg38/hg38.fa \
+  --sample-name-map $wdir/data/sample_map.txt \
+```
+For building this database on a number of samples, it is recommended to use a sample name map file rather than keying in each sample using input option -V individually. The sample map file looks like this: 
+```
+  NA12878      NA12878.markdup.bqsr.g.vcf.gz
+  NA12892      NA12892.markdup.bqsr.g.vcf.gz
+  NA12891      NA12891.markdup.bqsr.g.vcf.gz
+``` 
+### Joint genotype calling 
+GenotypeGVCFs uses the potential variants from the HaplotypeCaller recorded in the GCVFs of all samples in the cohort and does the joint genotyping. It will look at the available information for each site from both variant and non-variant alleles across all samples, and will produce a VCF file containing only the sites that it found to be variant in at least one sample.
+```
+j=20
+gatk --java-options "-Djava.io.tmpdir=/lscratch/$SLURM_JOBID -Xms2G -Xmx2G -XX:ParallelGCThreads=2" GenotypeGVCFs \
+  -R $wdir/hg38/hg38.fa \
+  -V gendb://$wdir/data/chr${j}db -O $wdir/data/chr${j}.vcf.gz
+``` 
