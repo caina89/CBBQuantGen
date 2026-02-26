@@ -4,7 +4,7 @@ import seaborn as sns
 from matplotlib.backends.backend_pdf import PdfPages
 
 # Load data
-pca = pd.read_csv("chr20_pca_results.eigenvec", sep='\t').rename(columns={'#FID': 'FID'})
+pca = pd.read_csv("allchr_unrelated_pruned_pca.eigenvec", sep='\t').rename(columns={'#FID': 'FID'})
 panel = pd.read_csv("integrated_call_samples_v3.20130502.ALL.panel", sep='\t')
 df_orig = pd.merge(pca, panel, left_on='IID', right_on='sample')
 
