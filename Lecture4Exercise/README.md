@@ -33,7 +33,7 @@ bcftools view -f PASS -v snps -m2 -M2 \
   -Oz -o chr20_snps_only.vcf.gz
 ```
 ## Further filtering the chr20 data on variant statistics  
-We then use plink2 to calculate the MAF and P-value for violation of Hardy-Weinberg Equilibrium (HWE) at each SNP, and filter out those with MAF < 0.05 and HWE P < 10-6. 
+We then use plink2 to calculate the MAF and P-value for violation of Hardy-Weinberg Equilibrium (HWE) at each SNP, and filter out those with MAF ($< 0.05$) and HWE P ($< 10^{-6}$). 
 * Note: we are performing the MAF and HWE P-value calculations and filtering on all individuals across many populations in 1000 Genomes Project here. Is this the right thing to do? How differently would you do it this if you were interested in a particular population? 
 ```
 # --vcf: Input your filtered VCF
