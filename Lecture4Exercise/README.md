@@ -19,4 +19,31 @@ We will first download the chr20 phased variants of all individuals in the 1000 
 ```
 wget https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chr20.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz
 ``` 
-## File formats 
+We will then download the [PLINK files in .bed, .bim and .fam format](https://www.cog-genomics.org/plink/1.9/formats#bed) for xxx variants (filtered) across all individuals in the 1000 Genomes Project [here](link). 
+```
+```
+## Filtering the chr20 data 
+We first remove from all chr20 variants those that are non-SNPs, multiallelic, those that didn't pass the initial 1000 Genomes quality checks (indicated in the "FILTER" column in the VCF file). We can do this using bcftools: 
+```
+# -f PASS: Only keep variants that passed initial QC
+# -v snps: Keep only SNPs (removes Indels)
+# -m2 -M2: Biallelic sites only
+bcftools view -f PASS -v snps -m2 -M2 \
+  ALL.chr20.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz \
+  -Oz -o chr20_snps_only.vcf.gz
+```
+## Further filtering the chr20 data on variant statistics  
+We then use plink2 to calculate the MAF and P-value for violation of Hardy-Weinberg Equilibrium (HWE) at each SNP, and filter out those with MAF < 0.05 and HWE P < 10-6. 
+* Note: we are performing the MAF and HWE P-value calculations and filtering on all individuals across many populations in 1000 Genomes Project here. Is this the right thing to do? How differently would you do it this if you were interested in a particular population? 
+```
+# --vcf: Input your filtered VCF
+# --maf 0.05: Filter for Minor Allele Frequency > 5%
+# --hwe 1e-6: Filter for Hardy-Weinberg p-value > 10^-6
+# --make-bed: Create the standard .bed/.bim/.fam binary fileset
+# --out: The prefix for your final files
+plink --vcf chr20_snps_only.vcf.gz \
+      --maf 0.05 \
+      --hwe 1e-6 \
+      --make-bed \
+      --out chr20_final_cleaned
+```
