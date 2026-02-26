@@ -1,9 +1,19 @@
 # Tutorial for Lecture 3 - Human genetic variation
-
+## Tools 
+[samtools](https://www.htslib.org/)
+[picardtools](https://broadinstitute.github.io/picard/)
+[Genome analysis toolkit (GATK)](https://gatk.broadinstitute.org/hc/en-us)
+You can install all three using conda 
+```
+conda install -c bioconda samtools picard gatk4
+```
+## File formats 
+[FASTA](https://en.wikipedia.org/wiki/FASTA_format)
+[Sequence alignment formats SAM/BAM](https://samtools.github.io/hts-specs/SAMv1.pdf)
+[Variant call format VCF](https://samtools.github.io/hts-specs/VCFv4.2.pdf)
 ## Data 
-Human genome reference: We will be using the GRCh38 human genome reference for all our exercises throughout the course. This is already downloaded for you in xxx, but to be able to download it for yourselves see "Genome sequence, primary assembly (GRCh38)" in FASTA section in [Gencode](https://www.gencodegenes.org/human/). 
-Human sequence data: We will be using reads aligning to the human genome reference GRCh38 on chr20 from three individuals xxx, xxx and xxx from the [1000 Genomes Project Phase 3](https://www.internationalgenome.org/data-portal/data-collection/phase-3) dataset for this exercise. This is already downloaded for your in xxx, but to be able to download them yourselves: 
-
+Human genome reference: We will be using the GRCh38 human genome reference for all our exercises throughout the course. This is already downloaded for you in xxx, but to be able to download it for yourselves see "Genome sequence, primary assembly (GRCh38)" in FASTA section in [Gencode](https://www.gencodegenes.org/human/) or see below. 
+Human sequence data: We will be using reads aligning to the human genome reference GRCh38 on chr20 from three individuals HG00096, HG00100 and NA12878 from the [1000 Genomes Project Phase 3](https://www.internationalgenome.org/data-portal/data-collection/phase-3) dataset for this exercise. This is already downloaded for your in xxx, but to be able to download them yourselves see below. 
 1. Download the Human Genome Reference hg38 from the UCSC Genome Browser - note this version of the hg38 genome reference uses the chr1, chr2 naming convention:
 ```
 wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
@@ -32,22 +42,7 @@ for ID in "${SAMPLES[@]}"; do
 
     echo "Done! Saved as ${ID}_chr20.bam and indexed."
 done
-``` 
-
-## Tools 
-[samtools](https://www.htslib.org/)
-[picardtools](https://broadinstitute.github.io/picard/)
-[Genome analysis toolkit (GATK)](https://gatk.broadinstitute.org/hc/en-us)
-You can install all three using conda 
 ```
-conda install -c bioconda samtools picard gatk4
-``` 
-
-## File formats 
-[FASTA](https://en.wikipedia.org/wiki/FASTA_format)
-[Sequence alignment formats SAM/BAM](https://samtools.github.io/hts-specs/SAMv1.pdf)
-[Variant call format VCF](https://samtools.github.io/hts-specs/VCFv4.2.pdf)
-
 ## Index and creating dictionary for reference genome 
 Indexing the reference FASTA file enables enables efficient access to arbitrary regions within those reference sequences.
 ```
