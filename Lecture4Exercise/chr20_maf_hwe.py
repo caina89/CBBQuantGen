@@ -17,7 +17,7 @@ hwe = hwe[hwe['P'] > 0].copy()
 hwe['neg_log10_p'] = -np.log10(hwe['P'])
 
 # 3. Create PDF and Save Plots
-with PdfPages('chr20_qc_report.pdf') as pdf:
+with PdfPages('chr20_stats.pdf') as pdf:
     
     # --- Page 1: MAF Distribution ---
     plt.figure(figsize=(10, 6))
@@ -39,4 +39,4 @@ with PdfPages('chr20_qc_report.pdf') as pdf:
     pdf.savefig()  # Save current figure to PDF
     plt.close()
 
-print("Report saved as 'chr20_qc_report.pdf'")
+print("Report saved as 'chr20_stats.pdf'")
