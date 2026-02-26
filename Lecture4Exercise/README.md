@@ -139,3 +139,29 @@ plink2 --bfile allchr_unrelated_pruned \
 * `allchr_unrelated_pruned_pca.eigenval`: This contains the eigenvalues. These represent the amount of variance explained by each PC.
 ### Visualization 
 We can now visualize the PCA results, plotting PC1 vs PC2, and colouring each sample by their reported populations. To visualize this in R use script `allchr_pca.R`, and to do this in python, use script `allchr_pca.py`. 
+### Projecting new individuals onto PCA 
+Remember those individuals we threw out because they were related to individuals we used in the PCA? We can project them onto the PCA already performed, using SNP Loadings (the weight each SNP contributes to each PC). To do this we first have to obtain the SNP loadings for each PC using plink2
+```
+#Save SNP scores (loadings) of PCA run on unrelated people 
+plink2 --bfile allchr_unrelated_pruned \
+       --pca vscore \
+       --out allchr_unrelated_pruned_pca
+# This creates 'allchr_unrelated_pruned_pca.eigenvec.var', which contains the weights for each SNP.
+```
+Now, we need to generate the list of individuals we filtered out with the greedy algorithm - taking the difference between allchr.fam and allchr_unrelated.unrelated.id. We can do this with AWK: 
+```
+awk 'NR==FNR {keep[$1,$2]; next} !(($1,$2) in keep) {print $1, $2}' \
+    allchr_unrelated.unrelated.id \
+    allchr.fam \
+    > related_indiv.txt
+```
+We can now apply the SNP loadings to their genotypes: 
+```
+# Project the related individuals (not used in PCA) onto the PCs
+# --score: Applies the weights from the .eigenvec.var file to the target individual
+plink2 --bfile allchr \
+       --keep related_indiv.txt \
+       --score allchr_unrelated_pruned_pca.eigenvec.var 2 3 header-read no-mean-imputation \
+       --out related_projection
+``` 
+And we can now visualize the where these related individuals lie on the PCA results from unrelated individuals: we'd still be plotting all unrelatedness individuals PC1 vs PC2, and colouring them by their reported populations, but now we have their related individuals projected onto the PC plot as black points. To visualize this in R use script `allchr_pca_project.R`, and to do this in python, use script `allchr_pca_project.py`. 
