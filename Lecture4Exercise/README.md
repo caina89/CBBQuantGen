@@ -74,3 +74,6 @@ plink2 --bfile chr20_final_cleaned --keep afr_ids.txt ---hardy --freq --out afr_
 ```
 ### Inspecting the difference between getting MAF and HWE P values between populations
 We are now better able to compare the MAF and HWE P values at SNPs between populations. To visualize this in R use script `chr20_maf_hwe_compare.R`, and to do this in python, use script `chr20_maf_hwe_compare.R`. 
+Key differences to observe: 
+* MAF Distribution: You will likely notice that the AFR population has a higher density of rare variants compared to the EUR population, reflecting the greater genetic diversity found in African populations.
+* HWE Outliers: If one population has a massive spike at high $-log_{10}(P)$ values that the other doesn't, it may indicate a population-specific technical artifact or a region under intense natural selection in that specific ancestry group.
