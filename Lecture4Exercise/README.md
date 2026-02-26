@@ -41,9 +41,17 @@ We then use plink2 to calculate the MAF and P-value for violation of Hardy-Weinb
 # --hwe 1e-6: Filter for Hardy-Weinberg p-value > 10^-6
 # --make-bed: Create the standard .bed/.bim/.fam binary fileset
 # --out: The prefix for your final files
-plink --vcf chr20_snps_only.vcf.gz \
+plink2 --vcf chr20_snps_only.vcf.gz \
       --maf 0.05 \
       --hwe 1e-6 \
       --make-bed \
       --out chr20_final_cleaned
 ```
+We can also ask plink2 to output the calculated MAF and 
+```
+# Generate Allele Frequency report (.afreq) and Hardy-Weinberg Equilibrium report (.hardy)
+plink2 --bfile chr20_final_cleaned --freq --hardy --out chr20_stats
+```
+There are several things to note about the output files:
+* In earlier versions of plink (e.g. plink1.9), the output of `--maf` is a `.frq` file focusing on the Minor Allele (MAF). In plink2, the output is an `.afreq` file focusing on the Alternate Allele (ALT).
+* plink2 can calculate much more precise p-values ($< 10^{-300}$) for HWE violation. To avoid scientific notation, we can use the log10 modifier: `--hardy log10`
