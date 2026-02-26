@@ -1,4 +1,4 @@
-# Tutorial for Lecture 2 - Human genetic variation
+# Tutorial for Lecture 3 - Human genetic variation
 
 ## Data 
 Human genome reference: We will be using the GRCh38 human genome reference for all our exercises throughout the course. This is already downloaded for you in xxx, but to be able to download it for yourselves see "Genome sequence, primary assembly (GRCh38)" in FASTA section in [Gencode](https://www.gencodegenes.org/human/). 
