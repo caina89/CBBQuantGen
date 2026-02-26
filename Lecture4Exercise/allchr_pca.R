@@ -2,7 +2,7 @@ library(data.table)
 library(ggplot2)
 
 # 1. Load PCA results (PLINK 2.0 format)
-pca <- fread("chr20_pca_results.eigenvec")
+pca <- fread("allchr_unrelated_pruned_pca.eigenvec")
 # Remove the '#' from the first column name
 setnames(pca, "#FID", "FID")
 
