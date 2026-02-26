@@ -73,7 +73,39 @@ plink2 --bfile chr20_final_cleaned --keep eur_ids.txt ---hardy --freq --out eur_
 plink2 --bfile chr20_final_cleaned --keep afr_ids.txt ---hardy --freq --out afr_stats
 ```
 ### Inspecting the difference between getting MAF and HWE P values between populations
-We are now better able to compare the MAF and HWE P values at SNPs between populations. To visualize this in R use script `chr20_maf_hwe_compare.R`, and to do this in python, use script `chr20_maf_hwe_compare.R`. 
+We are now better able to compare the MAF and HWE P values at SNPs between populations. To visualize this in R use script `chr20_maf_hwe_compare.R`, and to do this in python, use script `chr20_maf_hwe_compare.py`. 
 Key differences to observe: 
 * MAF Distribution: You will likely notice that the AFR population has a higher density of rare variants compared to the EUR population, reflecting the greater genetic diversity found in African populations.
 * HWE Outliers: If one population has a massive spike at high $-log_{10}(P)$ values that the other doesn't, it may indicate a population-specific technical artifact or a region under intense natural selection in that specific ancestry group.
+## Relatedness 
+Now let's use the filtered bi-allelic SNP data (MAF ($< 0.05$) and HWE P ($< 10^{-6}$)) from all 1000 Genomes individuals that I've prepared. Let's first calculate the relatedness between all pairs of individuals using KING. Because the 1000 Genomes dataset contains individuals from different populations, the KING-robust algorithm is the best choice because it is specifically designed to handle population structure without needing pre-defined allele frequencies. 
+First, to get the kinship coefficient for all pairs of individuals we can use: 
+```
+# -b: input the PLINK .bed file (use the prefix of your files)
+# --kinship: calculate the kinship coefficient (KING-robust)
+# --prefix: name your output files
+king -b allchr.bed --kinship --prefix allchr_kinship
+``` 
+Second, if we only want to see pairs that are actually related (e.g., 1st, 2nd, or 3rd degree) and ignore the unrelated pairs, use the --related flag. This is much more efficient for large datasets like the 1000 Genomes.
+```
+# --related: specifically identifies and classifies relative pairs
+king -b allchr.bed --related --prefix allchr_relatives 
+```
+### Filtering out related individuals 
+To filter out relatives (those closer than 3rd degree relatives, who have relatedness = 0.044) and keep a set of unrelated individuals, we will use a two-step process: first, let KING identify which individuals to remove based on your specific threshold, and then use plink2 to create the new, "clean" dataset.
+To do the first step, KING has a built-in "unrelated" command that uses a greedy algorithm to find the largest possible subset of unrelated individuals.
+```
+# --unrelated: identifies a subset of unrelated individuals
+# --degree 3: removes up to 3rd-degree relatives (kinship > 0.044)
+king -b allchr.bed --unrelated --degree 3 --prefix allchr_unrelated
+```
+Once KING finishes, it will produce a file ending in .unrelated.id. This file contains the list of people we should keep.
+```
+# --vcf or --bfile: your input
+# --keep: tells PLINK to only retain the IDs in the KING output file
+# --make-bed: saves the new unrelated dataset
+plink --bfile allchr \
+      --keep allchr_unrelated.unrelated.id \
+      --make-bed \
+      --out allchr_unrelated 
+``` 
