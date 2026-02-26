@@ -1,5 +1,5 @@
 # Tutorial for Lecture 4 - Relatedness and population structure 
-## Tools
+# Tools
 We will need [bcftools](https://samtools.github.io/bcftools/bcftools.html) a set of utilities that manipulate variant calls in the [Variant Call Format (VCF)](https://samtools.github.io/hts-specs/VCFv4.1.pdf) and its binary counterpart BCF, and [plink2](https://www.cog-genomics.org/plink/2.0/) a free, open-source whole genome association analysis toolset, designed to perform a range of basic, large-scale analyses in a computationally efficient manner. for processing If you haven't already install them in the past weeks, we'd now install them using conda 
 ```
 conda install -c bioconda bcftools plink2 
@@ -13,7 +13,7 @@ tar -xzvf Linux-king.tar.gz
 chmod +x king
 sudo mv king /usr/local/bin/
 ```
-## Data 
+# Data 
 In terms of data, we will be using all variants on chr20 of 2504 individuals in the [1000 Genomes Project Phase 3](https://www.internationalgenome.org/) release to demonstrate how phased variant calls are filtered, and a filtered set of xxx variants from across all autosomes in all 2504 individuals in the 1000 Genomes Project Phase 3 (that I've performed beforehand) to demonstrate how relatedness between them may be calculated, and how population structure between them can be obtained and visualized. 
 We will first download the chr20 phased variants of all individuals in the 1000 Genomes Project. Note that while Chr20 is one of the smaller chromosomes, but this file is still large. Ensure you have 10-15 GB of free space.
 ```
@@ -26,7 +26,7 @@ Finally we need the metadata of the individuals in the 1000 Genomes Project, dow
 ```
 wget https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/integrated_call_samples_v3.20130502.ALL.panel
 ```
-## Filtering the chr20 data 
+# Filtering the chr20 data 
 We first remove from all chr20 variants those that are non-SNPs, multiallelic, those that didn't pass the initial 1000 Genomes quality checks (indicated in the "FILTER" column in the VCF file). We can do this using bcftools: 
 ```
 # -f PASS: Only keep variants that passed initial QC
@@ -77,7 +77,7 @@ We are now better able to compare the MAF and HWE P values at SNPs between popul
 Key differences to observe: 
 * MAF Distribution: You will likely notice that the AFR population has a higher density of rare variants compared to the EUR population, reflecting the greater genetic diversity found in African populations.
 * HWE Outliers: If one population has a massive spike at high $-log_{10}(P)$ values that the other doesn't, it may indicate a population-specific technical artifact or a region under intense natural selection in that specific ancestry group.
-## Relatedness 
+# Relatedness 
 Now let's use the filtered bi-allelic SNP data (MAF ($< 0.05$) and HWE P ($< 10^{-6}$)) from all 1000 Genomes individuals that I've prepared. Let's first calculate the relatedness between all pairs of individuals using KING. Because the 1000 Genomes dataset contains individuals from different populations, the KING-robust algorithm is the best choice because it is specifically designed to handle population structure without needing pre-defined allele frequencies. 
 First, to get the kinship coefficient for all pairs of individuals we can use: 
 ```
@@ -93,7 +93,7 @@ king -b allchr.bed --related --prefix allchr_relatives
 ```
 ### Filtering out related individuals 
 To filter out relatives (those closer than 3rd degree relatives, who have relatedness = 0.044) and keep a set of unrelated individuals, we will use a two-step process: first, let KING identify which individuals to remove based on your specific threshold, and then use plink2 to create the new, "clean" dataset.
-To do the first step, KING has a built-in "unrelated" command that uses a greedy algorithm to find the largest possible subset of unrelated individuals.
+To do the first step, KING has a built-in "unrelated" command that uses a greedy algorithm to find the largest possible subset of unrelated individuals. This ensures we don't filter out people unnecessarily: If Person A is related to Person B and Person C, it will remove only Person A to save the other two, rather than removing all three.
 ```
 # --unrelated: identifies a subset of unrelated individuals
 # --degree 3: removes up to 3rd-degree relatives (kinship > 0.044)
@@ -108,4 +108,34 @@ plink --bfile allchr \
       --keep allchr_unrelated.unrelated.id \
       --make-bed \
       --out allchr_unrelated 
+```
+# Population structure 
+In population studies (like PCA) or GWAS, having relatives in the data can cause "inflation" ($\lambda > 1$), making our results look more significant than they actually are because the allele frequencies are skewed by family clusters. Now that we have filtered out related individuals, we can prepare for performing PCA, generally following a three-step process: Linkage Disequilibrium (LD) Pruning, the PCA calculation, and visualization.
+### LD Pruning 
+PCA is highly sensitive to "clumps" of variants that are inherited together (LD). If we don't prune your SNPs first, the PCA will reflect local LD patterns (like the MHC region) rather than global ancestry. We use PLINK to identify a subset of SNPs that are independent of one another.
+```
+# --indep-pairwise <window size> <step size> <r^2 threshold>
+# This looks at 50kb windows, slides by 5 SNPs, and flags SNPs with r^2 > 0.2
+plink2 --bfile allchr_unrelated \
+      --indep-pairwise 50 5 0.2 \
+      --out allchr_unrelated_prune
+# Now create a new pruned dataset using the 'prune.in' list
+plink2 --bfile allchr_unrelated \
+      --extract allchr_unrelated_prune.prune.in \
+      --make-bed \
+      --out allchr_unrelated_pruned
 ``` 
+### PCA 
+Now that we have a set of independent SNPs, we run the actual Principal Component Analysis. By default, most researchers extract the first 10 or 20 PCs.
+```
+# --pca: calculate principal components
+# Default is 20 PCs, but you can specify a number (e.g., --pca 10)
+plink2 --bfile allchr_unrelated_pruned \
+      --pca 10 \
+      --out allchr_unrelated_pruned_pca
+```
+`--pca` in plink2 will produce two main files:
+* `allchr_unrelated_pruned_pca.eigenvec`: This contains the actual PC coordinates for every person. Column 1 & 2 are IDs, Column 3 is PC1, Column 4 is PC2, etc.
+* `allchr_unrelated_pruned_pca.eigenval`: This contains the eigenvalues. These represent the amount of variance explained by each PC.
+### Visualization 
+We can now visualize the PCA results, plotting PC1 vs PC2, and colouring each sample by their reported populations. To visualize this in R use script `allchr_pca.R`, and to do this in python, use script `allchr_pca.py`. 
