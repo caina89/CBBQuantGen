@@ -9,6 +9,11 @@ Human reference variations:
 [samtools](https://www.htslib.org/)
 [picardtools](https://broadinstitute.github.io/picard/)
 [Genome analysis toolkit (GATK)](https://gatk.broadinstitute.org/hc/en-us)
+You can install all three using conda 
+```
+conda install -c bioconda samtools picard gatk4
+``` 
+
 ## File formats 
 [FASTA](https://en.wikipedia.org/wiki/FASTA_format)
 [Sequence alignment formats SAM/BAM](https://samtools.github.io/hts-specs/SAMv1.pdf)
