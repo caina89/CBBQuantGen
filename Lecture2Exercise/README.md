@@ -28,7 +28,15 @@ Use the bash commands above to download Miniconda and install it.
 * Confirm Path: It will ask to install in `~/miniconda3` or `~/anaconda3`. Press `Enter` to accept the default.
 * Initialize: At the end, it will ask if you want to `run conda init`. Type `yes`. This adds conda to your shell so it works every time you open the terminal.
 * Restart Terminal: Close your terminal window and reopen it (or run source `~/.bashrc`). You should see (`base`) next to your cursor.
-## Bioinformatics/Quantitative genetics tools 
+## R for plotting 
+We will be using R (or python if you so choose - but in case you use R), and need to install R using conda:
+```
+# Install R into your current conda environment
+conda install -c conda-forge r-base r-essentials
+# Check if it works
+R --version
+```
+## Bioinformatics/Quantitative genetics tools starter kit 
 We can create a directory `~/bin` for all the softwares you will be using in this course. 
 Bioinformatics softwares can be downloaded from their individual webpages or, in many instances, be installed directly by conda. Sometimes it is worth it checking their individual webpages for latest versions, which may or may not be updated in conda. See download pages of the following sites:  
 * [samtools](https://www.htslib.org/)
@@ -36,7 +44,7 @@ Bioinformatics softwares can be downloaded from their individual webpages or, in
 * [Genome analysis toolkit (GATK)](https://gatk.broadinstitute.org/hc/en-us)
 You can install all three using conda at the same time: 
 ```
-conda install -c bioconda samtools picard gatk4
+conda install -c bioconda samtools picard gatk4 plink2 bcftools
 ```
 ## File formats 
 * [FASTA](https://en.wikipedia.org/wiki/FASTA_format)
