@@ -22,6 +22,10 @@ wget https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chr20.phase
 We will then download the [PLINK files in .bed, .bim and .fam format](https://www.cog-genomics.org/plink/1.9/formats#bed) for xxx variants (filtered) across all individuals in the 1000 Genomes Project [here](link). 
 ```
 ```
+Finally we need the metadata of the individuals in the 1000 Genomes Project, downloadable directly from [here](https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/integrated_call_samples_v3.20130502.ALL.panel) or using
+```
+wget https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/integrated_call_samples_v3.20130502.ALL.panel
+```
 ## Filtering the chr20 data 
 We first remove from all chr20 variants those that are non-SNPs, multiallelic, those that didn't pass the initial 1000 Genomes quality checks (indicated in the "FILTER" column in the VCF file). We can do this using bcftools: 
 ```
@@ -55,3 +59,18 @@ plink2 --bfile chr20_final_cleaned --freq --hardy --out chr20_stats
 There are several things to note about the output files:
 * In earlier versions of plink (e.g. plink1.9), the output of `--maf` is a `.frq` file focusing on the Minor Allele (MAF). In plink2, the output is an `.afreq` file focusing on the Alternate Allele (ALT).
 * plink2 can calculate much more precise p-values ($< 10^{-300}$) for HWE violation. To avoid scientific notation, we can use the log10 modifier: `--hardy log10`
+###  Inspecting the MAFs and HWE P values 
+We then want to inspect the MAFs and HWE violation P values across all SNPs and individuals in 1000 Genomes Project, grouping individuals by populations. To visualize this in R, use script xxx, and to do this in python, use script xxx. 
+### Getting MAFs and HWE P values per population 
+Remember, previously we are performed the MAF and HWE P-value calculations and filtering on all individuals across many populations in 1000 Genomes Project here. To obtain the MAFs and HWE violation P values of all chr20 SNPs per population (E.g. EUR and AFR), do the following: 
+```
+# Get EUR IDs
+awk '$3=="EUR" {print $1, $1}' integrated_call_samples_v3.20130502.ALL.panel > eur_ids.txt
+# Get AFR IDs
+awk '$3=="AFR" {print $1, $1}' integrated_call_samples_v3.20130502.ALL.panel > afr_ids.txt
+# Get stats for each
+plink2 --bfile chr20_final_cleaned --keep eur_ids.txt ---hardy --freq --out eur_stats
+plink2 --bfile chr20_final_cleaned --keep afr_ids.txt ---hardy --freq --out afr_stats
+```
+### Inspecting the difference between getting MAF and HWE P values between populations
+We are now better able to compare the MAF and HWE P values at SNPs between populations. To visualize this in R use script xxx, and to do this in python, use script xxx. 
