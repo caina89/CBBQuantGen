@@ -2,8 +2,37 @@
 
 ## Data 
 Human genome reference: We will be using the GRCh38 human genome reference for all our exercises throughout the course. This is already downloaded for you in xxx, but to be able to download it for yourselves see "Genome sequence, primary assembly (GRCh38)" in FASTA section in [Gencode](https://www.gencodegenes.org/human/). 
-Human sequence data: We will be using reads aligning to the human genome reference GRCh38 on chr20 from three individuals xxx, xxx and xxx from the [1000 Genomes Project Phase 3](https://www.internationalgenome.org/data-portal/data-collection/phase-3) dataset for this exercise. This is already downloaded for your in xxx, but to be able to download them yourselves see xxx. 
-Human reference variations: 
+Human sequence data: We will be using reads aligning to the human genome reference GRCh38 on chr20 from three individuals xxx, xxx and xxx from the [1000 Genomes Project Phase 3](https://www.internationalgenome.org/data-portal/data-collection/phase-3) dataset for this exercise. This is already downloaded for your in xxx, but to be able to download them yourselves: 
+
+1. Download the Human Genome Reference hg38 from the UCSC Genome Browser - note this version of the hg38 genome reference uses the chr1, chr2 naming convention:
+```
+wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
+```
+2. Download the chr20 bams (actually, crams, even more compact version) from the 1000 Genomes Project FTP
+```
+# 1. Identify 3 random samples
+SAMPLES=("HG00096" "HG00100" "NA12878")
+# 2. Identify the Base URL for the High Coverage (30x) data
+BASE_URL="https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/data"
+# 3. Download
+for ID in "${SAMPLES[@]}"; do
+    echo "------------------------------------------"
+    echo "Downloading Chromosome 20 for $ID..."
+    
+    # Construct the URL for the CRAM file
+    REMOTE_URL="${BASE_URL}/${ID}/high_cov_alignment/${ID}.alt_bwamem_GRCh38DH.20200423.evidence_with_unmapped.cram"
+
+    # Use samtools to download ONLY chr20 and save it as a BAM locally
+    # -b: output in BAM format
+    # -h: include the header (essential for the file to be valid)
+    samtools view -b -h "$REMOTE_URL" chr20 > "${ID}_chr20.bam"
+    
+    # Create an index for the new BAM file so you can view it in IGV
+    samtools index "${ID}_chr20.bam"
+
+    echo "Done! Saved as ${ID}_chr20.bam and indexed."
+done
+``` 
 
 ## Tools 
 [samtools](https://www.htslib.org/)
