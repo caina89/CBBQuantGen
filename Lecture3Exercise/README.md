@@ -158,7 +158,7 @@ gatk --java-options "-Xms4G -Xmx4G" VariantRecalibrator \
   -mode SNP -O allchr.recal --tranches-file allchr.tranches \
   --rscript-file allchr.plots.R
 ```
-The output file ```$wdir/data/allchr.plots.R``` is inspected to identify the right "tranche" to select for SNPs, usually through assessing if the SNP Ti/Tv ratios of all variants in the tranche, including known and novel, are close to 2. The VQSLOD scores corresponding to the tranche the user finds ideal, in the ```$wdir/data/allchr.tranches``` file, are then applied in the ApplyVQSR step to determine if a variant has a PASS or FAIL in the QUAL column of the final, recalibrated, VCF file. As the Ti/Tv ratio metric can only be used on SNPs, usually the recalibration tranche is determined using SNPs, and the same tranche (and therefore VQSLOD cutoff) is applied to call INDELs.  
+The output file ```allchr.plots.R``` is inspected to identify the right "tranche" to select for SNPs, usually through assessing if the SNP Ti/Tv ratios of all variants in the tranche, including known and novel, are close to 2. The VQSLOD scores corresponding to the tranche the user finds ideal, in the ```allchr.tranches``` file, are then applied in the ApplyVQSR step to determine if a variant has a PASS or FAIL in the QUAL column of the final, recalibrated, VCF file. As the Ti/Tv ratio metric can only be used on SNPs, usually the recalibration tranche is determined using SNPs, and the same tranche (and therefore VQSLOD cutoff) is applied to call INDELs.  
 ```
 gatk --java-options "-Xms4G -Xmx4G" ApplyVQSR \
   -V allchr.vcf.gz \
