@@ -16,7 +16,11 @@ Human genome reference: We will be using the GRCh38 human genome reference for a
 Human sequence data: We will be using reads aligning to the human genome reference GRCh38 on chr20 from three individuals HG00096, HG00100 and NA12878 from the [1000 Genomes Project Phase 3](https://www.internationalgenome.org/data-portal/data-collection/phase-3) dataset for this exercise. 
 1. Download the Human Genome Reference hg38 from the UCSC Genome Browser - note this version of the hg38 genome reference uses the chr1, chr2 naming convention:
 ```
+cd
+mkdir data
+cd data 
 wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
+gzip -d hg38.fa.gz
 ```
 2. Download the chr20 bams (actually, crams, even more compact version) from the 1000 Genomes Project FTP
 ```
