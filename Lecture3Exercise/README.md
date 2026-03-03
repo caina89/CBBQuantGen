@@ -126,7 +126,7 @@ j=20
 gatk --java-options "-Xms4G -Xmx4G" GenomicsDBImport \
   --genomicsdb-workspace-path $wdir/data/chr${j}db \
   -R $wdir/hg38/hg38.fa \
-  --sample-name-map $wdir/data/sample_map.txt \
+  --sample-name-map $wdir/data/sample_map.txt 
 ```
 For building this database on a number of samples, it is recommended to use a sample name map file rather than keying in each sample using input option -V individually. The tab-delimited sample map file looks like this: 
 ```
