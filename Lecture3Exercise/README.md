@@ -6,6 +6,8 @@
 You can install all three using conda 
 ```
 conda install -c bioconda samtools picard gatk4
+conda install -c conda-forge ncurses
+## because of some dependencies samtools need 
 ```
 ## File formats 
 [FASTA](https://en.wikipedia.org/wiki/FASTA_format)
@@ -24,26 +26,22 @@ gzip -d hg38.fa.gz
 ```
 2. Download the chr20 bams (actually, crams, even more compact version) from the 1000 Genomes Project FTP
 ```
-# 1. Identify 3 random samples
-SAMPLES=("HG00100" "HG00109" "HG00132")
+# 1. Identify a random samples
+SAMPLES=$(echo "HG00100" "HG00109" "HG00132")
 # 2. Identify the Base URL for the High Coverage (30x) data
 BASE_URL="https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/data/GBR"
 # 3. Download
-for ID in "${SAMPLES[@]}"; do
+for ID in $SAMPLES; do
     echo "------------------------------------------"
     echo "Downloading Chromosome 20 for $ID..."
-    
     # Construct the URL for the CRAM file
     REMOTE_URL="${BASE_URL}/${ID}/alignment/${ID}.alt_bwamem_GRCh38DH.20150718.GBR.low_coverage.cram"
-
     # Use samtools to download ONLY chr20 and save it as a BAM locally
     # -b: output in BAM format
     # -h: include the header (essential for the file to be valid)
-    samtools view -b -h "$REMOTE_URL" chr20 > "${ID}_chr20.bam"
-    
+    samtools view -T hg38.fa -b -h "$REMOTE_URL" chr20 > "${ID}_chr20.bam"
     # Create an index for the new BAM file so you can view it in IGV
     samtools index "${ID}_chr20.bam"
-
     echo "Done! Saved as ${ID}_chr20.bam and indexed."
 done
 ```
@@ -60,13 +58,17 @@ picard CreateSequenceDictionary R=hg38.fa O=hg38.dict
 We use samtools and picardtools for inspecting and processing sequencing files in the SAM/BAM formats. As these files contain a large number of aligned sequences, identifying and accessing sequencing reads aligned to specific regions in the genome (e.g. chr20:500000-600000) is made faster through sorting them by genome coordinates (in the reference genome to which the sequences are aligned) and indexing them for fast random access.  
 ### Sort coordinates 
 ```
-java -jar picard.jar SortSam I=HG00096_chr20.bam O=HG00096_chr20.sorted.bam SORT_ORDER=coordinate
+SAMPLES=$(echo "HG00100" "HG00109" "HG00132")
+for ID in $SAMPLES; do
+picard SortSam I=${ID}_chr20.bam O=${ID}_chr20.sorted.bam SORT_ORDER=coordinate
+samtools index ${ID}_chr20.sorted.bam
+done 
 ```
 ### Looking at a BAM files 
 [samtools view](https://www.htslib.org/doc/samtools-view.html) allows you to access aligned reads in stdout or piped to an output file (in SAM or BAM format) for later use. For options see descriptions in the samtools view page.  
-This example command shows you the first 10 lines of a sequence alignment BAM file, which contains the first 10 reads aligned to the chr20:500000-600000 region in the human genome reference file xxx.  
+This example command shows you the first 10 lines of a sequence alignment BAM file, which contains the first 10 reads aligned to the chr20:500000-600000 region in the human genome reference file `hg38.fa`.  
 ```
-samtools view $wdir/data/HG00096_chr20.sorted.bam chr20:500000-600000 | head -n 10
+samtools view HG00100_chr20.sorted.bam chr20:500000-600000 | head -n 10
 ```
 ## Preprocessing before variant calling 
 ### MarkDuplicates
