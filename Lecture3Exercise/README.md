@@ -74,7 +74,7 @@ samtools view -T hg38.fa HG00100_chr20.sorted.bam chr20:500000-600000 | head -n 
 ### Base quality score recalibration
 Systematic bias can originate from library preparation, sequencing, manufacturing defects in the flowcell chips, sequencer variation, and sequencing chemistry, resulting in over- or underestimation of quality scores. Base quality score recalibration in GATK involves two steps. In step 1, in BaseRecalibrator, an error model is built through comparing the base quality scores at all bases in input file (raw, from sequencers) to those at known variants (previously identified to be true human genetic variations). The error model calibrates the base quality scores such that those at known human variations are more likely to be adjusted higher, and those at novel variations identified in the input sequencing file are likely to be adjusted lower (since they are more likely to be sequencing errors). 
 
-First, to download the known variants and their index files. In this instance, we'd use the hg38 VCF file for all common variants documented in dbSNP
+First, to download the known variants and their index files. In this instance, we'd use the hg38 VCF file for all common variants documented in [dbSNP](https://www.ncbi.nlm.nih.gov/variation/docs/human_variation_vcf/):
 ```
 wget https://ftp.ncbi.nih.gov/snp/organisms/human_9606/VCF/GATK/common_all_20180418.vcf.gz
 wget https://ftp.ncbi.nih.gov/snp/organisms/human_9606/VCF/GATK/common_all_20180418.vcf.gz.tbi
