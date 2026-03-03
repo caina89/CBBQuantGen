@@ -85,53 +85,62 @@ wget https://ftp.ncbi.nih.gov/snp/organisms/human_9606/VCF/GATK/common_all_20180
 ```
 Then perform step1, the BaseRecalibrator: 
 ```
+SAMPLES=$(echo "HG00100" "HG00109" "HG00132")
+for ID in $SAMPLES; do
 gatk --java-options "-Xms4G -Xmx4G" BaseRecalibrator \
-  -I HG00100_chr20.markdup.bam \
+  -I ${ID}_chr20.markdup.bam \
   -R hg38.fa \
-  -O HG00100_chr20.markdup.bqsr.report \
-  --known-sites common_all_20180418.vcf.gz \
+  -O ${ID}_chr20.markdup.bqsr.report \
+  --known-sites common_all_20180418.vcf.gz
+done
 ```
 This error model is applied in step 2, using ApplyBQSR: 
 ```
+SAMPLES=$(echo "HG00100" "HG00109" "HG00132")
+for ID in $SAMPLES; do
 gatk --java-options "-Xms4G -Xms4G" ApplyBQSR \
-  -I $wdir/data/HG00100_chr20.markdup.bam \
+  -I $wdir/data/${ID}_chr20.markdup.bam \
   -R $wdir/hg38/hg38.fa \
-  --bqsr-recal-file $wdir/data/HG00100_chr20.markdup.bqsr.report \
-  -O $wdir/data/HG00100_chr20.markdup.bqsr.bam
+  --bqsr-recal-file $wdir/data/${ID}_chr20.markdup.bqsr.report \
+  -O $wdir/data/${ID}_chr20.markdup.bqsr.bam
+done 
 ```
 ## Variant calling 
 The [GATK HaplotypeCaller] calls SNPs and indels simultaneously via local de-novo assembly of haplotypes in an active region. In other words, whenever the program encounters a region showing signs of variation, it discards the existing mapping information and completely reassembles the reads in that region. This allows the HaplotypeCaller to be more accurate when calling regions that are traditionally difficult to call, for example when they contain different types of variants close to each other. For each potentially variant site, the program applies Bayes' rule, using the likelihoods of alleles given the read data to calculate the likelihoods of each genotype per sample given the read data observed for that sample. The most likely genotype is then assigned to the sample.
 ### Single-sample variant calling 
 Single-sample variant calling generates GVCF files, which records variant sites and groups non-variant sites into blocks during the calling process based on genotype quality. This is a way of compressing the VCF file without losing any sites in order to do joint analysis in subsequent steps.
 ```
-gatk --java-options "-Xms20G -Xmx20G -XX:ParallelGCThreads=2" HaplotypeCaller \
+SAMPLES=$(echo "HG00100" "HG00109" "HG00132")
+for ID in $SAMPLES; do
+gatk --java-options "-Xms4G -Xmx4G" HaplotypeCaller \
   -R $wdir/hg38/hg38.fa \
-  -I $wdir/data/HG00100_chr20.markdup.bqsr.bam \
-  -O $wdir/data/HG00100_chr20.markdup.bqsr.g.vcf.gz \
+  -I $wdir/data/${ID}_chr20.markdup.bqsr.bam \
+  -O $wdir/data/${ID}_chr20.markdup.bqsr.g.vcf.gz \
   -ERC GVCF
+done 
 ```
 ### Generating a variant database 
 GVCFs are consolidated into a GenomicsDB datastore in order to improve scalability and speedup the next step: joint genotyping. This step can be done per chromosome, so that the next step can be run in parallel across all chromosomes and therefore speedup the process. 
 ```
 j=20
-gatk --java-options "-Xms2G -Xmx2G -XX:ParallelGCThreads=2" GenomicsDBImport \
+gatk --java-options "-Xms4G -Xmx4G" GenomicsDBImport \
   --genomicsdb-workspace-path $wdir/data/chr${j}db \
   -R $wdir/hg38/hg38.fa \
   --sample-name-map $wdir/data/sample_map.txt \
 ```
 For building this database on a number of samples, it is recommended to use a sample name map file rather than keying in each sample using input option -V individually. The tab-delimited sample map file looks like this: 
 ```
-  HG00096      HG00100_chr20.markdup.bqsr.g.vcf.gz
-  HG00100      HG00109_chr20.markdup.bqsr.g.vcf.gz
-  NA12878      HG00132_chr20.markdup.bqsr.g.vcf.gz
+  HG00100      HG00100_chr20.markdup.bqsr.g.vcf.gz
+  HG00109      HG00109_chr20.markdup.bqsr.g.vcf.gz
+  HG00132      HG00132_chr20.markdup.bqsr.g.vcf.gz
 ``` 
 ### Joint genotype calling 
 GenotypeGVCFs uses the potential variants from the HaplotypeCaller recorded in the GCVFs of all samples in the cohort and does the joint genotyping. It will look at the available information for each site from both variant and non-variant alleles across all samples, and will produce a VCF file containing only the sites that it found to be variant in at least one sample.
 ```
 j=20
-gatk --java-options "-Xms2G -Xmx2G -XX:ParallelGCThreads=2" GenotypeGVCFs \
-  -R $wdir/hg38/hg38.fa \
-  -V gendb://$wdir/data/chr${j}db -O $wdir/data/chr${j}.vcf.gz
+gatk --java-options "-Xms4G -Xmx4G" GenotypeGVCFs \
+  -R hg38.fa \
+  -V gendb://chr${j}db -O $wdir/data/chr${j}.vcf.gz
 ``` 
 ## Variant call quality control 
 ### Variant annotations 
@@ -141,32 +150,27 @@ Raw variant calls can include many artifacts, and this is captured in many metri
 We would also supply a range of "tranches", which are percentage specificity to known variants in the "positive" set we'd identify as true variants in the analysed dataset i.e. 100.0 would contain only known variants supplied in the training sets, 90.0 would mean the positive set contains 90% known variants. Usually, a lot of tranches in the 90-100 range are given, since we expect a new variant call set to be majority known (and contain very few novel, rare variants). Through doing this, VQSR generates a new quality score called the VQSLOD, a log-ratio of the variant’s probabilities belonging to the positive and negative sets given each of the tranches (selectivities). The purpose of this new score is to enable variant filtering in a way that allows analysts to balance sensitivity (trying to discover all the real variants) and specificity (trying to limit the false positives that creep in when filters get too lenient) as finely as possible. 
 Also, notably, this step is usually better when performed on as many variants as possible. As the earlier step is done per chromosome to parallelize the process, usually VCFs from all chromosomes are merged before the VQSR step. 
 ```
-gatk --java-options "-Xms4G -Xmx4G -XX:ParallelGCThreads=2" VariantRecalibrator \
+gatk --java-options "-Xms4G -Xmx4G" VariantRecalibrator \
   -tranche 100.0 -tranche 99.95 -tranche 99.9 \
   -tranche 99.5 -tranche 99.0 -tranche 97.0 -tranche 96.0 \
   -tranche 95.0 -tranche 94.0 \
   -tranche 93.5 -tranche 93.0 -tranche 92.0 -tranche 91.0 -tranche 90.0 \
-  -R $wdir/hg38/hg38.fa \
-  -V $wdir/data/allchr.vcf.gz \
-  --resource:hapmap,known=false,training=true,truth=true,prior=15.0 \
-  $wdir/hg38/hapmap_3.3.hg38.vcf.gz  \
-  --resource:omni,known=false,training=true,truth=false,prior=12.0 \
-  $wdir/hg38/1000G_omni2.5.hg38.vcf.gz \
-  --resource:1000G,known=false,training=true,truth=false,prior=10.0 \
-  $wdir/hg38/1000G_phase1.snps.high_confidence.hg38.vcf.gz \
+  -R hg38.fa \
+  -V allchr.vcf.gz \
+  --resource:dbsnp,known=true,training=true,truth=true,prior=15.0 common_all_20180418.vcf.gz  \
   -an QD -an MQ -an MQRankSum -an ReadPosRankSum -an FS -an SOR  \
-  -mode SNP -O $wdir/data/allchr.recal --tranches-file $wdir/data/allchr.tranches \
-  --rscript-file $wdir/data/allchr.plots.R
+  -mode SNP -O allchr.recal --tranches-file allchr.tranches \
+  --rscript-file allchr.plots.R
 ```
 The output file ```$wdir/data/allchr.plots.R``` is inspected to identify the right "tranche" to select for SNPs, usually through assessing if the SNP Ti/Tv ratios of all variants in the tranche, including known and novel, are close to 2. The VQSLOD scores corresponding to the tranche the user finds ideal, in the ```$wdir/data/allchr.tranches``` file, are then applied in the ApplyVQSR step to determine if a variant has a PASS or FAIL in the QUAL column of the final, recalibrated, VCF file. As the Ti/Tv ratio metric can only be used on SNPs, usually the recalibration tranche is determined using SNPs, and the same tranche (and therefore VQSLOD cutoff) is applied to call INDELs.  
 ```
-gatk --java-options "-Xms2G -Xmx2G -XX:ParallelGCThreads=2" ApplyVQSR \
-  -V $wdir/data/allchr.vcf.gz \
-  --recal-file $wdir/data/allchr.recal \
+gatk --java-options "-Xms4G -Xmx4G" ApplyVQSR \
+  -V allchr.vcf.gz \
+  --recal-file allchr.recal \
   -mode SNP \
-  --tranches-file $wdir/data/allchr.tranches \
+  --tranches-file allchr.tranches \
   --truth-sensitivity-filter-level 99.9 \
   --create-output-variant-index true \
-  -O $wdir/data/allchr.recalibrated_99.9.vcf.gz
+  -O allchr.recalibrated_99.9.vcf.gz
 ```
 
