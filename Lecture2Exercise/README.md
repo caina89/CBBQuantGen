@@ -26,7 +26,7 @@ bash Miniconda3-latest-Linux-x86_64.sh
 ### Installation of Miniconda (Quick Guide)
 Use the bash commands above to download Miniconda and install it.
 * Review License: Press Enter to view the terms, and then type `yes` to accept.
-* Confirm Path: It will ask to install in `~/miniconda3` or `~/anaconda3`. Press `Enter` to accept the default.
+* Confirm Path: It will ask to install in `/cluster/home/$username/miniconda3`. Press `Enter` to accept the default.
 * Initialize: At the end, it will ask if you want to `run conda init`. Type `yes`. This adds conda to your shell so it works every time you open the terminal.
 * Restart Terminal: Close your terminal window and reopen it (or run source `~/.bashrc`). You should see (`base`) next to your cursor.
 ## R for plotting 
@@ -43,7 +43,9 @@ Bioinformatics softwares can be downloaded from their individual webpages or, in
 * [samtools](https://www.htslib.org/)
 * [picardtools](https://broadinstitute.github.io/picard/)
 * [Genome analysis toolkit (GATK)](https://gatk.broadinstitute.org/hc/en-us)
-You can install all three using conda at the same time: 
+* [plink2](https://www.cog-genomics.org/plink/2.0/)
+* [bcftools](https://samtools.github.io/bcftools/bcftools.html)
+You can install all of them using conda at the same time: 
 ```
 conda install -c bioconda samtools picard gatk4 plink2 bcftools
 ```
