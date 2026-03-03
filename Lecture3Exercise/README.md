@@ -25,16 +25,16 @@ gzip -d hg38.fa.gz
 2. Download the chr20 bams (actually, crams, even more compact version) from the 1000 Genomes Project FTP
 ```
 # 1. Identify 3 random samples
-SAMPLES=("HG00096" "HG00100" "NA12878")
+SAMPLES=("HG00100" "HG00109" "HG00132")
 # 2. Identify the Base URL for the High Coverage (30x) data
-BASE_URL="https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/data"
+BASE_URL="https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/data/GBR"
 # 3. Download
 for ID in "${SAMPLES[@]}"; do
     echo "------------------------------------------"
     echo "Downloading Chromosome 20 for $ID..."
     
     # Construct the URL for the CRAM file
-    REMOTE_URL="${BASE_URL}/${ID}/high_cov_alignment/${ID}.alt_bwamem_GRCh38DH.20200423.evidence_with_unmapped.cram"
+    REMOTE_URL="${BASE_URL}/${ID}/alignment/${ID}.alt_bwamem_GRCh38DH.20150718.GBR.low_coverage.cram"
 
     # Use samtools to download ONLY chr20 and save it as a BAM locally
     # -b: output in BAM format
