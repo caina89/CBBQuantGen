@@ -45,6 +45,7 @@ Bioinformatics softwares can be downloaded from their individual webpages or, in
 * [Genome analysis toolkit (GATK)](https://gatk.broadinstitute.org/hc/en-us)
 * [plink2](https://www.cog-genomics.org/plink/2.0/)
 * [bcftools](https://samtools.github.io/bcftools/bcftools.html)
+
 You can install all of them using conda at the same time: 
 ```
 conda install -c bioconda samtools picard gatk4 plink2 bcftools
