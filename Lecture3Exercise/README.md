@@ -79,40 +79,24 @@ picard MarkDuplicates I=$wdir/data/HG00100_chr20.sorted.bam O=$wdir/data/HG00100
 ### Base quality score recalibration
 Systematic bias can originate from library preparation, sequencing, manufacturing defects in the flowcell chips, sequencer variation, and sequencing chemistry, resulting in over- or underestimation of quality scores. Base quality score recalibration in GATK involves two steps. In step 1, in BaseRecalibrator, an error model is built through comparing the base quality scores at all bases in input file (raw, from sequencers) to those at known variants (previously identified to be true human genetic variations). The error model calibrates the base quality scores such that those at known human variations are more likely to be adjusted higher, and those at novel variations identified in the input sequencing file are likely to be adjusted lower (since they are more likely to be sequencing errors). 
 
-First, to download the known variants and their index files 
+First, to download the known variants and their index files. In this instance, we'd use the hg38 VCF file for all common variants documented in dbSNP
 ```
-# Define the base URL
-BASE="https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0"
-# Files to download
-FILES=(
-  "dbsnp_146.hg38.vcf.gz"
-  "dbsnp_146.hg38.vcf.gz.tbi"
-  "Homo_sapiens_assembly38.known_indels.vcf.gz"
-  "Homo_sapiens_assembly38.known_indels.vcf.gz.tbi"
-  "Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
-  "Mills_and_1000G_gold_standard.indels.hg38.vcf.gz.tbi"
-)
-# Loop and download
-for FILE in "${FILES[@]}"; do
-    wget "${BASE}/${FILE}"
-done
+wget https://ftp.ncbi.nih.gov/snp/organisms/human_9606/VCF/GATK/common_all_20180418.vcf.gz
 ```
 Then perform step1, the BaseRecalibrator: 
 ```
-gatk --java-options "-Xms4G -Xmx4G -XX:ParallelGCThreads=2" BaseRecalibrator \
-  -I $wdir/data/HG00100_chr20.markdup.bam \
-  -R $wdir/hg38/hg38.fa \
-  -O $wdir/data/HG00100_chr20.markdup.bqsr.report \
-  --known-sites $wdir/hg38/dbsnp_146.hg38.vcf.gz \
-  --known-sites $wdir/hg38/Homo_sapiens_assembly38.known_indels.vcf.gz \
-  --known-sites $wdir/hg38/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz
+gatk --java-options "-Xms4G -Xmx4G" BaseRecalibrator \
+  -I HG00100_chr20.markdup.bam \
+  -R hg38.fa \
+  -O HG00100_chr20.markdup.bqsr.report \
+  --known-sites common_all_20180418.vcf.gz \
 ```
 This error model is applied in step 2, using ApplyBQSR: 
 ```
-gatk --java-options "-Xms2G -Xmx2G -XX:ParallelGCThreads=2" ApplyBQSR \
+gatk --java-options "-Xms4G -Xms4G" ApplyBQSR \
   -I $wdir/data/HG00100_chr20.markdup.bam \
   -R $wdir/hg38/hg38.fa \
-  --bqsr-recal-file $wdir/data/NA12878_chr20.markdup.bqsr.report \
+  --bqsr-recal-file $wdir/data/HG00100_chr20.markdup.bqsr.report \
   -O $wdir/data/HG00100_chr20.markdup.bqsr.bam
 ```
 ## Variant calling 
