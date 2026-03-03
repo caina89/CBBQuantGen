@@ -77,6 +77,7 @@ Systematic bias can originate from library preparation, sequencing, manufacturin
 First, to download the known variants and their index files. In this instance, we'd use the hg38 VCF file for all common variants documented in dbSNP
 ```
 wget https://ftp.ncbi.nih.gov/snp/organisms/human_9606/VCF/GATK/common_all_20180418.vcf.gz
+wget https://ftp.ncbi.nih.gov/snp/organisms/human_9606/VCF/GATK/common_all_20180418.vcf.gz.tbi
 ```
 Then perform step1, the BaseRecalibrator: 
 ```
