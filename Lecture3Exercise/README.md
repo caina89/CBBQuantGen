@@ -54,7 +54,7 @@ samtools faidx hg38.fa
 ``` 
 Creating a dictionary .dict file for a reference FASTA enables bioinformatics tools, such picardtools and GATK, to check that essential information about the contigs (chromosomes) present in the reference FASTA file, such as their names, lengths, and MD5 checksums. 
 ```
-java -jar picard.jar CreateSequenceDictionary R=hg38.fasta O=hg38.dict
+picard CreateSequenceDictionary R=hg38.fa O=hg38.dict
 ```
 ## Sorting, indexing and viewing your bams 
 We use samtools and picardtools for inspecting and processing sequencing files in the SAM/BAM formats. As these files contain a large number of aligned sequences, identifying and accessing sequencing reads aligned to specific regions in the genome (e.g. chr20:500000-600000) is made faster through sorting them by genome coordinates (in the reference genome to which the sequences are aligned) and indexing them for fast random access.  
@@ -72,7 +72,7 @@ samtools view $wdir/data/HG00096_chr20.sorted.bam chr20:500000-600000 | head -n 
 ### MarkDuplicates
 PCR duplicate reads are identified and marked before variant calling to reduce bias. Mark Duplicates is performed using [MarkDuplicates](https://broadinstitute.github.io/picard/command-line-overview.html#MarkDuplicates) in picardtools. 
 ```
-java -jar picard.jar MarkDuplicates I=$wdir/data/HG00096_chr20.sorted.bam O=$wdir/data/HG00096_chr20.markdup.bam M=$wdir/data/HG00096_chr20.markdup.metrics.txt
+picard MarkDuplicates I=$wdir/data/HG00096_chr20.sorted.bam O=$wdir/data/HG00096_chr20.markdup.bam M=$wdir/data/HG00100_chr20.markdup.metrics.txt
 ```
 ### Base quality score recalibration
 Systematic bias can originate from library preparation, sequencing, manufacturing defects in the flowcell chips, sequencer variation, and sequencing chemistry, resulting in over- or underestimation of quality scores. Base quality score recalibration in GATK involves two steps. In step 1, in BaseRecalibrator, an error model is built through comparing the base quality scores at all bases in input file (raw, from sequencers) to those at known variants (previously identified to be true human genetic variations). The error model calibrates the base quality scores such that those at known human variations are more likely to be adjusted higher, and those at novel variations identified in the input sequencing file are likely to be adjusted lower (since they are more likely to be sequencing errors). 
