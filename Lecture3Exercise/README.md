@@ -71,11 +71,6 @@ This example command shows you the first 10 lines of a sequence alignment BAM fi
 samtools view -T hg38.fa HG00100_chr20.sorted.bam chr20:500000-600000 | head -n 10
 ```
 ## Preprocessing before variant calling 
-### MarkDuplicates
-PCR duplicate reads are identified and marked before variant calling to reduce bias. Mark Duplicates is performed using [MarkDuplicates](https://broadinstitute.github.io/picard/command-line-overview.html#MarkDuplicates) in picardtools. 
-```
-picard MarkDuplicates I=$wdir/data/HG00100_chr20.sorted.bam O=$wdir/data/HG00100_chr20.markdup.bam M=$wdir/data/HG00100_chr20.markdup.metrics.txt
-```
 ### Base quality score recalibration
 Systematic bias can originate from library preparation, sequencing, manufacturing defects in the flowcell chips, sequencer variation, and sequencing chemistry, resulting in over- or underestimation of quality scores. Base quality score recalibration in GATK involves two steps. In step 1, in BaseRecalibrator, an error model is built through comparing the base quality scores at all bases in input file (raw, from sequencers) to those at known variants (previously identified to be true human genetic variations). The error model calibrates the base quality scores such that those at known human variations are more likely to be adjusted higher, and those at novel variations identified in the input sequencing file are likely to be adjusted lower (since they are more likely to be sequencing errors). 
 
@@ -88,9 +83,9 @@ Then perform step1, the BaseRecalibrator:
 SAMPLES=$(echo "HG00100" "HG00109" "HG00132")
 for ID in $SAMPLES; do
 gatk --java-options "-Xms4G -Xmx4G" BaseRecalibrator \
-  -I ${ID}_chr20.markdup.bam \
+  -I ${ID}_chr20.sorted.bam \
   -R hg38.fa \
-  -O ${ID}_chr20.markdup.bqsr.report \
+  -O ${ID}_chr20.sorted.bqsr.report \
   --known-sites common_all_20180418.vcf.gz
 done
 ```
@@ -99,10 +94,10 @@ This error model is applied in step 2, using ApplyBQSR:
 SAMPLES=$(echo "HG00100" "HG00109" "HG00132")
 for ID in $SAMPLES; do
 gatk --java-options "-Xms4G -Xms4G" ApplyBQSR \
-  -I $wdir/data/${ID}_chr20.markdup.bam \
+  -I $wdir/data/${ID}_chr20.sorted.bam \
   -R $wdir/hg38/hg38.fa \
-  --bqsr-recal-file $wdir/data/${ID}_chr20.markdup.bqsr.report \
-  -O $wdir/data/${ID}_chr20.markdup.bqsr.bam
+  --bqsr-recal-file $wdir/data/${ID}_chr20.sorted.bqsr.report \
+  -O $wdir/data/${ID}_chr20.sorted.bqsr.bam
 done 
 ```
 ## Variant calling 
@@ -114,8 +109,8 @@ SAMPLES=$(echo "HG00100" "HG00109" "HG00132")
 for ID in $SAMPLES; do
 gatk --java-options "-Xms4G -Xmx4G" HaplotypeCaller \
   -R $wdir/hg38/hg38.fa \
-  -I $wdir/data/${ID}_chr20.markdup.bqsr.bam \
-  -O $wdir/data/${ID}_chr20.markdup.bqsr.g.vcf.gz \
+  -I $wdir/data/${ID}_chr20.sorted.bqsr.bam \
+  -O $wdir/data/${ID}_chr20.sorted.bqsr.g.vcf.gz \
   -ERC GVCF
 done 
 ```
@@ -130,9 +125,9 @@ gatk --java-options "-Xms4G -Xmx4G" GenomicsDBImport \
 ```
 For building this database on a number of samples, it is recommended to use a sample name map file rather than keying in each sample using input option -V individually. The tab-delimited sample map file looks like this: 
 ```
-  HG00100      HG00100_chr20.markdup.bqsr.g.vcf.gz
-  HG00109      HG00109_chr20.markdup.bqsr.g.vcf.gz
-  HG00132      HG00132_chr20.markdup.bqsr.g.vcf.gz
+  HG00100      HG00100_chr20.sorted.bqsr.g.vcf.gz
+  HG00109      HG00109_chr20.sorted.bqsr.g.vcf.gz
+  HG00132      HG00132_chr20.sorted.bqsr.g.vcf.gz
 ``` 
 ### Joint genotype calling 
 GenotypeGVCFs uses the potential variants from the HaplotypeCaller recorded in the GCVFs of all samples in the cohort and does the joint genotyping. It will look at the available information for each site from both variant and non-variant alleles across all samples, and will produce a VCF file containing only the sites that it found to be variant in at least one sample.
