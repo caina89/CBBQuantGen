@@ -9,7 +9,7 @@ df_orig <- merge(pca_orig, panel, by.x = "IID", by.y = "sample")
 # Load Projected Individual (from .sscore file)
 # Note: PLINK 2 score output columns are usually SCORE1_AVG, etc.
 projected <- read.table("related_projection.sscore")
-colnames(projected)=c("FID","IID","SCORE1_AVG", "SCORE2_AVG"),paste0("PC",c(1:10)))
+colnames(projected)=c("FID","IID","SCORE1_AVG", "SCORE2_AVG",paste0("PC",c(1:10)))
 
 pdf("allchr.EUR.biallelicsnps_pca_project.pdf", width = 10, height = 8)
 
