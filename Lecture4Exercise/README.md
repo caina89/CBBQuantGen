@@ -20,8 +20,11 @@ We will first download the chr20 phased variants of all individuals in the 1000 
 wget https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/phase3_liftover_nygc_dir/phase3.chr20.GRCh38.GT.crossmap.vcf.gz; 
 wget https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/phase3_liftover_nygc_dir/phase3.chr20.GRCh38.GT.crossmap.vcf.gz.tbi; 
 ``` 
-We will then download the [PLINK files in .bed, .bim and .fam format](https://www.cog-genomics.org/plink/1.9/formats#bed) for xxx variants (filtered) across all individuals in the 1000 Genomes Project [here](link). 
+We will then download the [PLINK files in .bed, .bim and .fam format](https://www.cog-genomics.org/plink/1.9/formats#bed) for xxx variants (filtered) across all individuals in the 1000 Genomes Project [here](https://zenodo.org/records/19068199). 
 ```
+wget https://zenodo.org/records/19068199/files/allchr.EUR.biallelicsnps.bed
+wget https://zenodo.org/records/19068199/files/allchr.EUR.biallelicsnps.bim
+wget https://zenodo.org/records/19068199/files/allchr.EUR.biallelicsnps.fam 
 ```
 Finally we need the metadata of the individuals in the 1000 Genomes Project, downloadable directly from [here](https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/integrated_call_samples_v3.20130502.ALL.panel) or using
 ```
