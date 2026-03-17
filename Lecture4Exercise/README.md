@@ -22,9 +22,9 @@ wget https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high
 ``` 
 We will then download the [PLINK files in .bed, .bim and .fam format](https://www.cog-genomics.org/plink/1.9/formats#bed) for xxx variants (filtered) across all individuals in the 1000 Genomes Project [here](https://zenodo.org/records/19068199). 
 ```
-wget https://zenodo.org/records/19068199/files/allchr.EUR.biallelicsnps.bed
-wget https://zenodo.org/records/19068199/files/allchr.EUR.biallelicsnps.bim
-wget https://zenodo.org/records/19068199/files/allchr.EUR.biallelicsnps.fam 
+wget https://zenodo.org/records/19068199/files/allchr.EUR.biallelicsnps.cbb.bed -O allchr.EUR.biallelicsnps.bed
+wget https://zenodo.org/records/19068199/files/allchr.EUR.biallelicsnps.cbb.bim -O allchr.EUR.biallelicsnps.bim
+wget https://zenodo.org/records/19068199/files/allchr.EUR.biallelicsnps.cbb.fam -O allchr.EUR.biallelicsnps.fam
 ```
 Finally we need the metadata of the individuals in the 1000 Genomes Project, downloadable directly from [here](https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/integrated_call_samples_v3.20130502.ALL.panel) or using
 ```
@@ -89,13 +89,10 @@ To do the first step, KING has a built-in "unrelated" command that uses a greedy
 # --degree 3: removes up to 3rd-degree relatives (kinship > 0.044)
 king -b allchr.EUR.biallelicsnps.bed --unrelated --degree 3 --prefix allchr.EUR.biallelicsnps_unrelated
 ```
-Once KING finishes, it will produce a file ending in .unrelated.id. This file contains the list of people we should keep.
+Once KING finishes, it will produce a file ending in _toberemoved.txt. This file contains the list of people we should remove.
 ```
-# --vcf or --bfile: your input
-# --keep: tells PLINK to only retain the IDs in the KING output file
-# --make-bed: saves the new unrelated dataset
-plink --bfile allchr \
-      --keep allchr.EUR.biallelicsnps_unrelated.unrelated.id \
+plink2 --bfile allchr.EUR.biallelicsnps \
+      --remove allchr.EUR.biallelicsnps_unrelatedunrelated_toberemoved.txt \
       --make-bed \
       --out allchr.EUR.biallelicsnps_unrelated 
 ```
@@ -105,14 +102,18 @@ In population studies (like PCA) or GWAS, having relatives in the data can cause
 PCA is highly sensitive to "clumps" of variants that are inherited together (LD). If we don't prune your SNPs first, the PCA will reflect local LD patterns (like the MHC region) rather than global ancestry. We use PLINK to identify a subset of SNPs that are independent of one another.
 ```
 # --indep-pairwise <window size> <step size> <r^2 threshold>
-# This looks at 50kb windows, slides by 5 SNPs, and flags SNPs with r^2 > 0.2
+# This looks at 100kb windows, slides by 10 SNPs, and flags SNPs with r^2 > 0.1
 plink2 --bfile allchr.EUR.biallelicsnps_unrelated \
-      --indep-pairwise 50 5 0.2 \
+      --indep-pairwise 100 10 0.1 --threads 1 \
       --out allchr.EUR.biallelicsnps_unrelated_prune
 # Now create a new pruned dataset using the 'prune.in' list
 plink2 --bfile allchr.EUR.biallelicsnps_unrelated \
       --extract allchr.EUR.biallelicsnps_unrelated_prune.prune.in \
-      --make-bed \
+      --make-bed --threads 1 \
+      --out allchr.EUR.biallelicsnps_unrelated_pruned
+# Now let's get the allele frequencies for new pruned dataset using the 'prune.in' list
+plink2 --bfile allchr.EUR.biallelicsnps_unrelated_pruned \
+      --freq --threads 1 \
       --out allchr.EUR.biallelicsnps_unrelated_pruned
 ``` 
 ### PCA 
@@ -121,37 +122,37 @@ Now that we have a set of independent SNPs, we run the actual Principal Componen
 # --pca: calculate principal components
 # Default is 20 PCs, but you can specify a number (e.g., --pca 10)
 plink2 --bfile allchr.EUR.biallelicsnps_unrelated_pruned \
-      --pca 10 \
+      --pca 10 --threads 1 \
       --out allchr.EUR.biallelicsnps_unrelated_pruned_pca
 ```
 `--pca` in plink2 will produce two main files:
 * `allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec`: This contains the actual PC coordinates for every person. Column 1 & 2 are IDs, Column 3 is PC1, Column 4 is PC2, etc.
 * `allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenval`: This contains the eigenvalues. These represent the amount of variance explained by each PC.
+* `allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec.allele`: This third file is produced because we asked the PCA 
 ### Visualization 
 We can now visualize the PCA results, plotting PC1 vs PC2, and colouring each sample by their reported populations. To visualize this in R use script `allchr_pca.R`, and to do this in python, use script `allchr_pca.py`. 
 ### Projecting new individuals onto PCA 
-Remember those individuals we threw out because they were related to individuals we used in the PCA? We can project them onto the PCA already performed, using SNP Loadings (the weight each SNP contributes to each PC). To do this we first have to obtain the SNP loadings for each PC using plink2
+Remember those individuals we threw out because they were related to individuals we used in the PCA? We can project them onto the PCA already performed, using SNP Loadings (the weight each SNP contributes to each PC). To do this we first have to obtain the SNP weights for each PC using plink2
 ```
 #Save SNP scores (loadings) of PCA run on unrelated people 
 plink2 --bfile allchr.EUR.biallelicsnps_unrelated_pruned \
-       --pca vscore \
+       --pca 10 allele-wts vcols=chrom,ref,alt --threads 1 \
        --out allchr.EUR.biallelicsnps_unrelated_pruned_pca
-# This creates 'allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec.var', which contains the weights for each SNP.
+# This creates 'allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec.allele', which contains the weights for each SNP.
 ```
-Now, we need to generate the list of individuals we filtered out with the greedy algorithm - taking the difference between allchr.fam and allchr_unrelated.unrelated.id. We can do this with AWK: 
+Now, we need to get the list of individuals we filtered out with the greedy algorithm. We have them in this file: 
 ```
-awk 'NR==FNR {keep[$1,$2]; next} !(($1,$2) in keep) {print $1, $2}' \
-    allchr.EUR.biallelicsnps_unrelated.unrelated.id \
-    allchr.EUR.biallelicsnps.fam \
-    > related_indiv.txt
+allchr.EUR.biallelicsnps_unrelatedunrelated_toberemoved.txt
 ```
 We can now apply the SNP loadings to their genotypes: 
 ```
 # Project the related individuals (not used in PCA) onto the PCs
-# --score: Applies the weights from the .eigenvec.var file to the target individual
+# --score: Applies the weights from the .eigenvec.allele file to the target individual
 plink2 --bfile allchr.EUR.biallelicsnps \
-       --keep related_indiv.txt \
-       --score allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec.var 2 3 header-read no-mean-imputation \
+       --read-freq allchr.EUR.biallelicsnps_unrelated_pruned.afreq \
+       --keep allchr.EUR.biallelicsnps_unrelatedunrelated_toberemoved.txt \
+       --score allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec.allele 2 5 header-read no-mean-imputation variance-standardize \
+       --score-col-nums 6-15 \
        --out related_projection
-``` 
+```    
 And we can now visualize the where these related individuals lie on the PCA results from unrelated individuals: we'd still be plotting all unrelatedness individuals PC1 vs PC2, and colouring them by their reported populations, but now we have their related individuals projected onto the PC plot as black points. To visualize this in R use script `allchr_pca_project.R`, and to do this in python, use script `allchr_pca_project.py`. 
