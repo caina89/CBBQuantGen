@@ -131,28 +131,3 @@ plink2 --bfile allchr.EUR.biallelicsnps_unrelated_pruned \
 * `allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec.allele`: This third file is produced because we asked the PCA 
 ### Visualization 
 We can now visualize the PCA results, plotting PC1 vs PC2, and colouring each sample by their reported populations. To visualize this in R use script `allchr_pca.R`, and to do this in python, use script `allchr_pca.py`. 
-### Projecting new individuals onto PCA 
-Remember those individuals we threw out because they were related to individuals we used in the PCA? We can project them onto the PCA already performed, using SNP Loadings (the weight each SNP contributes to each PC). To do this we first have to obtain the SNP weights for each PC using plink2
-```
-#Save SNP scores (loadings) of PCA run on unrelated people 
-plink2 --bfile allchr.EUR.biallelicsnps_unrelated_pruned \
-       --pca 10 allele-wts vcols=chrom,ref,alt --threads 1 \
-       --out allchr.EUR.biallelicsnps_unrelated_pruned_pca
-# This creates 'allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec.allele', which contains the weights for each SNP.
-```
-Now, we need to get the list of individuals we filtered out with the greedy algorithm. We have them in this file: 
-```
-allchr.EUR.biallelicsnps_unrelatedunrelated_toberemoved.txt
-```
-We can now apply the SNP loadings to their genotypes: 
-```
-# Project the related individuals (not used in PCA) onto the PCs
-# --score: Applies the weights from the .eigenvec.allele file to the target individual
-plink2 --bfile allchr.EUR.biallelicsnps \
-       --read-freq allchr.EUR.biallelicsnps_unrelated_pruned.afreq \
-       --keep allchr.EUR.biallelicsnps_unrelatedunrelated_toberemoved.txt \
-       --score allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec.allele 2 5 header-read no-mean-imputation variance-standardize \
-       --score-col-nums 6-15 \
-       --out related_projection
-```    
-And we can now visualize the where these related individuals lie on the PCA results from unrelated individuals: we'd still be plotting all unrelatedness individuals PC1 vs PC2, and colouring them by their reported populations, but now we have their related individuals projected onto the PC plot as black points. To visualize this in R use script `allchr_pca_project.R`, and to do this in python, use script `allchr_pca_project.py`. 
