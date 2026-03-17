@@ -17,7 +17,8 @@ sudo mv king /usr/local/bin/
 In terms of data, we will be using all variants on chr20 of 2504 individuals in the [1000 Genomes Project Phase 3](https://www.internationalgenome.org/) release to demonstrate how phased variant calls are filtered, and a filtered set of xxx variants from across all autosomes in all 2504 individuals in the 1000 Genomes Project Phase 3 (that I've performed beforehand) to demonstrate how relatedness between them may be calculated, and how population structure between them can be obtained and visualized. 
 We will first download the chr20 phased variants of all individuals in the 1000 Genomes Project. Note that while Chr20 is one of the smaller chromosomes, but this file is still large. Ensure you have 10-15 GB of free space.
 ```
-wget https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chr20.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz
+wget https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/phase3_liftover_nygc_dir/phase3.chr20.GRCh38.GT.crossmap.vcf.gz; 
+wget https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/phase3_liftover_nygc_dir/phase3.chr20.GRCh38.GT.crossmap.vcf.gz.tbi; 
 ``` 
 We will then download the [PLINK files in .bed, .bim and .fam format](https://www.cog-genomics.org/plink/1.9/formats#bed) for xxx variants (filtered) across all individuals in the 1000 Genomes Project [here](link). 
 ```
@@ -27,34 +28,20 @@ Finally we need the metadata of the individuals in the 1000 Genomes Project, dow
 wget https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/integrated_call_samples_v3.20130502.ALL.panel
 ```
 # Filtering the chr20 data 
-We first remove from all chr20 variants those that are non-SNPs, multiallelic, those that didn't pass the initial 1000 Genomes quality checks (indicated in the "FILTER" column in the VCF file). We can do this using bcftools: 
+We use plink2 to identify all chr20 variants that are SNPs, biallelic, with MAF ($> 0.01$) and P-value for violation of Hardy-Weinberg Equilibrium (HWE) ($> 10^{-6}$):
+* Note: we are performing the MAF and HWE P-value calculations and filtering on all individuals across many populations in 1000 Genomes Project here. Is this the right thing to do? How differently would you do it this if you were interested in a particular population?
 ```
-# -f PASS: Only keep variants that passed initial QC
-# -v snps: Keep only SNPs (removes Indels)
-# -m2 -M2: Biallelic sites only
-bcftools view -f PASS -v snps -m2 -M2 \
-  ALL.chr20.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz \
-  -Oz -o chr20_snps_only.vcf.gz
-```
-## Further filtering the chr20 data on variant statistics  
-We then use plink2 to calculate the MAF and P-value for violation of Hardy-Weinberg Equilibrium (HWE) at each SNP, and filter out those with MAF ($< 0.05$) and HWE P ($< 10^{-6}$). 
-* Note: we are performing the MAF and HWE P-value calculations and filtering on all individuals across many populations in 1000 Genomes Project here. Is this the right thing to do? How differently would you do it this if you were interested in a particular population? 
-```
-# --vcf: Input your filtered VCF
-# --maf 0.05: Filter for Minor Allele Frequency > 5%
-# --hwe 1e-6: Filter for Hardy-Weinberg p-value > 10^-6
-# --make-bed: Create the standard .bed/.bim/.fam binary fileset
-# --out: The prefix for your final files
-plink2 --vcf chr20_snps_only.vcf.gz \
-      --maf 0.05 \
-      --hwe 1e-6 \
-      --make-bed \
-      --out chr20_final_cleaned
-```
+vcf="phase3.chr20.GRCh38.GT.crossmap.vcf.gz"
+plink2 --vcf $vcf --snps-only just-acgt \
+--max-alleles 2 --min-alleles 2 --maf 0.01 --geno 0.01 --hwe 1e-6 \
+--rm-dup exclude-all --set-missing-var-ids '@:#:$r:$a' \
+--double-id --new-id-max-allele-len 10 missing --make-bed --threads 1 \
+--out chr20_snps
+``` 
 We can also ask plink2 to output the calculated MAF and 
 ```
 # Generate Allele Frequency report (.afreq) and Hardy-Weinberg Equilibrium report (.hardy)
-plink2 --bfile chr20_final_cleaned --freq --hardy --out chr20_stats
+plink2 --bfile chr20_snps --freq --hardy --out chr20_snps_stats
 ```
 There are several things to note about the output files:
 * In earlier versions of plink (e.g. plink1.9), the output of `--maf` is a `.frq` file focusing on the Minor Allele (MAF). In plink2, the output is an `.afreq` file focusing on the Alternate Allele (ALT).
@@ -69,8 +56,8 @@ awk '$3=="EUR" {print $1, $1}' integrated_call_samples_v3.20130502.ALL.panel > e
 # Get AFR IDs
 awk '$3=="AFR" {print $1, $1}' integrated_call_samples_v3.20130502.ALL.panel > afr_ids.txt
 # Get stats for each
-plink2 --bfile chr20_final_cleaned --keep eur_ids.txt ---hardy --freq --out eur_stats
-plink2 --bfile chr20_final_cleaned --keep afr_ids.txt ---hardy --freq --out afr_stats
+plink2 --bfile chr20_snps --keep eur_ids.txt --hardy --freq --out eur_stats
+plink2 --bfile chr20_snps --keep afr_ids.txt --hardy --freq --out afr_stats
 ```
 ### Inspecting the difference between getting MAF and HWE P values between populations
 We are now better able to compare the MAF and HWE P values at SNPs between populations. To visualize this in R use script `chr20_maf_hwe_compare.R`, and to do this in python, use script `chr20_maf_hwe_compare.py`. 
