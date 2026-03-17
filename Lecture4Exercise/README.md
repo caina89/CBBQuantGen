@@ -9,9 +9,6 @@ We will also be needing KING which is the software we will use to determine rela
 # Download the Linux version
 wget https://www.kingrelatedness.com/Linux-king.tar.gz
 tar -xzvf Linux-king.tar.gz
-# Move to your local bin
-chmod +x king
-sudo mv king /usr/local/bin/
 ```
 # Data 
 In terms of data, we will be using all variants on chr20 of 2504 individuals in the [1000 Genomes Project Phase 3](https://www.internationalgenome.org/) release to demonstrate how phased variant calls are filtered, and a filtered set of xxx variants from across all autosomes in all 2504 individuals in the 1000 Genomes Project Phase 3 (that I've performed beforehand) to demonstrate how relatedness between them may be calculated, and how population structure between them can be obtained and visualized. 
