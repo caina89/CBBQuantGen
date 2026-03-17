@@ -1,16 +1,15 @@
-library(data.table)
 library(ggplot2)
 
 # Load original PCA and Panel
-pca_orig <- fread("allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec")
-setnames(pca_orig, "#FID", "FID")
-panel <- fread("integrated_call_samples_v3.20130502.ALL.panel")
+pca_orig <- read.table("allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec")
+colnames(pca_orig)=c("FID", "IID",paste0("PC",c(1:10)))
+panel <- read.table("integrated_call_samples_v3.20130502.ALL.panel",header=T)
 df_orig <- merge(pca_orig, panel, by.x = "IID", by.y = "sample")
 
 # Load Projected Individual (from .sscore file)
 # Note: PLINK 2 score output columns are usually SCORE1_AVG, etc.
-projected <- fread("related_projection.sscore")
-setnames(projected, c("IID", "SCORE1_AVG", "SCORE2_AVG"), c("IID", "PC1", "PC2"),俠=FALSE)
+projected <- read.table("related_projection.sscore")
+colnames(projected)=c("FID","IID","SCORE1_AVG", "SCORE2_AVG"),paste0("PC",c(1:10)))
 
 pdf("allchr.EUR.biallelicsnps_pca_project.pdf", width = 10, height = 8)
 
