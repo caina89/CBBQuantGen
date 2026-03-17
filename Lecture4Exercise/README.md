@@ -60,10 +60,10 @@ plink2 --bfile chr20_snps --keep eur_ids.txt --hardy --freq --out eur_stats
 plink2 --bfile chr20_snps --keep afr_ids.txt --hardy --freq --out afr_stats
 ```
 ### Inspecting the difference between getting MAF and HWE P values between populations
-We are now better able to compare the MAF and HWE P values at SNPs between populations. To visualize this in R use script `chr20_maf_hwe_compare.R`, and to do this in python, use script `chr20_maf_hwe_compare.py`. 
-Key differences to observe: 
-* MAF Distribution: You will likely notice that the AFR population has a higher density of rare variants compared to the EUR population, reflecting the greater genetic diversity found in African populations.
-* HWE Outliers: If one population has a massive spike at high $-log_{10}(P)$ values that the other doesn't, it may indicate a population-specific technical artifact or a region under intense natural selection in that specific ancestry group.
+We are now better able to compare the MAF and HWE P values at SNPs between populations. To visualize this in R use script `chr20_maf_hwe_compare.R`, and to do this in python, use script `chr20_maf_hwe_compare.py`. Note that we have previously already filtered the SNPs such that they all have MAF ($> 0.01$) and P-value for violation of Hardy-Weinberg Equilibrium (HWE) ($> 10^{-6}$). 
+Key differences you might still observe: 
+* MAF Distribution: You will likely notice that the AFR population has different distribution of MAF compared to the EUR population, reflecting the greater genetic diversity found in African populations.
+* HWE Outliers: If one population has more high $-log_{10}(P)$ values than the other, it may indicate a population-specific technical artifact or a region under intense natural selection in that specific ancestry group.
 # Relatedness 
 Now let's use the filtered bi-allelic SNP data (MAF ($< 0.05$) and HWE P ($< 10^{-6}$)) from all 1000 Genomes individuals that I've prepared. Let's first calculate the relatedness between all pairs of individuals using KING. Because the 1000 Genomes dataset contains individuals from different populations, the KING-robust algorithm is the best choice because it is specifically designed to handle population structure without needing pre-defined allele frequencies. 
 First, to get the kinship coefficient for all pairs of individuals we can use: 
