@@ -74,12 +74,12 @@ First, to get the kinship coefficient for all pairs of individuals we can use:
 # -b: input the PLINK .bed file (use the prefix of your files)
 # --kinship: calculate the kinship coefficient (KING-robust)
 # --prefix: name your output files
-king -b allchr.bed --kinship --prefix allchr_kinship
+king -b allchr.EUR.biallelicsnps.bed --kinship --prefix allchr_kinship
 ``` 
 Second, if we only want to see pairs that are actually related (e.g., 1st, 2nd, or 3rd degree) and ignore the unrelated pairs, use the --related flag. This is much more efficient for large datasets like the 1000 Genomes.
 ```
 # --related: specifically identifies and classifies relative pairs
-king -b allchr.bed --related --prefix allchr_relatives 
+king -b allchr.EUR.biallelicsnps.bed --related --prefix allchr_relatives 
 ```
 ### Filtering out related individuals 
 To filter out relatives (those closer than 3rd degree relatives, who have relatedness = 0.044) and keep a set of unrelated individuals, we will use a two-step process: first, let KING identify which individuals to remove based on your specific threshold, and then use plink2 to create the new, "clean" dataset.
