@@ -4,7 +4,7 @@ import seaborn as sns
 from matplotlib.backends.backend_pdf import PdfPages
 
 # 1. Load PCA results
-pca = pd.read_csv("allchr_unrelated_pruned_pca.eigenvec", sep='\t')
+pca = pd.read_csv("allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec", sep='\t')
 pca.columns = [c.replace('#', '') for c in pca.columns]
 
 # 2. Load Population Metadata
