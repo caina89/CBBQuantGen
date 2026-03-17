@@ -128,6 +128,5 @@ plink2 --bfile allchr.EUR.biallelicsnps_unrelated_pruned \
 `--pca` in plink2 will produce two main files:
 * `allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec`: This contains the actual PC coordinates for every person. Column 1 & 2 are IDs, Column 3 is PC1, Column 4 is PC2, etc.
 * `allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenval`: This contains the eigenvalues. These represent the amount of variance explained by each PC.
-* `allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec.allele`: This third file is produced because we asked the PCA 
 ### Visualization 
 We can now visualize the PCA results, plotting PC1 vs PC2, and colouring each sample by their reported populations. To visualize this in R use script `allchr_pca.R`, and to do this in python, use script `allchr_pca.py`. 
