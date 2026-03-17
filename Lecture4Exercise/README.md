@@ -108,10 +108,6 @@ plink2 --bfile allchr.EUR.biallelicsnps_unrelated \
       --extract allchr.EUR.biallelicsnps_unrelated_prune.prune.in \
       --make-bed --threads 1 \
       --out allchr.EUR.biallelicsnps_unrelated_pruned
-# Now let's get the allele frequencies for new pruned dataset using the 'prune.in' list
-plink2 --bfile allchr.EUR.biallelicsnps_unrelated_pruned \
-      --freq --threads 1 \
-      --out allchr.EUR.biallelicsnps_unrelated_pruned
 ``` 
 ### PCA 
 Now that we have a set of independent SNPs, we run the actual Principal Component Analysis. By default, most researchers extract the first 10 or 20 PCs.
