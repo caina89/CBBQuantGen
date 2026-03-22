@@ -1,4 +1,4 @@
-# Simulating a phenotype with heritability of 0.5 
+# Tutorial for Lecture 5 - Heritability estimation 
 We want to simulate a phenotype with SNP heritability = 0.5 with the European unrelated individuals in 1KGP Phase 3 (which we have used in Lecture 4 Exercise). To do so we need the following:
 
 ## Data 
