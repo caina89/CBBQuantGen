@@ -1,6 +1,6 @@
 ## Lambda estimation using REML 
 REML uses likelihood function to estimate the Genetic Variance ($\sigma_g^2$) and the Residual Variance ($\sigma_e^2$). Their ratio then defines the $\lambda$ for BLUP/Ridge Regression. 
-To demonstrate this we use the p3d or lme4 R package, adapted for genomic data, as shown in `reml_lambda.R`. 
+To demonstrate this we use the p3d or lme4 R package, adapted for genomic data in the R package rrBLUP, as shown in `reml_lambda.R`. 
 
 In this script, the mixed.solve function performs Restricted Maximum Likelihood (REML). It looks at the distribution of the phenotypes $y$ and asks: "Given the relationship structure of these 10 SNPs, what values of $\sigma_g^2$ and $\sigma_e^2$ make this specific pattern of $y$ most likely?" It ignores the fixed effects (the mean) to ensure the variance estimates aren't biased.
 
