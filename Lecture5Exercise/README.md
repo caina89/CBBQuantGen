@@ -17,17 +17,17 @@ chmod +x gcta64
 ```
 ## Steps 
 ### Step 1: Simulate phenotype and causal SNPs 
-To simulate phenotype with 1000 causal variants (SNPs):
+To simulate phenotype with 1000 causal variants (SNPs) where each causal SNP is not in LD with another one (i.e. only one causal SNP per LD block), we'd simulate the causal effects using the LD-pruned genotype file we obtained in Lecture 4 Exercises `allchr.EUR.biallelicsnps_unrelated_pruned`
 ```
 # 1. Pick 1000 random SNPs from the .bim file
-shuf -n 1000 allchr.EUR.biallelicsnps_unrelated.bim | awk '{print $2}' > causal_snps.txt
+shuf -n 1000 allchr.EUR.biallelicsnps_unrelated_pruned.bim | awk '{print $2}' > causal_snps.txt
 
 # 2. Generate random effect sizes (Beta ~ Normal(0,1))
 awk '{print $1, "A1", rand()}' causal_snps.txt > causal_effects.txt
 
-# 3. Calculate the Raw Genetic Score (G) using PLINK 2
+# 3. Calculate the Raw Genetic Score (G) using PLINK 2 in all individuals
 # 'cols=scoresums' gives the unscaled sum of (allele_count * beta)
-plink2 --bfile allchr.EUR.biallelicsnps_unrelated \
+plink2 --bfile allchr.EUR.biallelicsnps_unrelated_pruned \
        --score causal_effects.txt 1 2 3 cols=scoresums \
        --out genetic_values
 ```
