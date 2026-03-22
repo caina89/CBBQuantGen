@@ -65,7 +65,7 @@ If we were to plot these (Manhattan plots), here is what the distribution of p-v
 * 1000 Small Effects: This is the Infinitesimal Model. We might see many small "bumps" or maybe nothing even hits the genome-wide significance line ($5 \times 10^{-8}$) since our sample size is small (like the 1000 Genomes $N \approx 500$).
 
 Plot your results using the `plot_manhattan_qqplots.R` in R or `plot_manhattan_qqplots.py` in python.  
-## Calculate genomic inflation factor $\lambda_{GC}$
+## Step 5: Calculate genomic inflation factor $\lambda_{GC}$
 To numerically verify if our GWAS is well-calibrated (meaning the signal is truly genetic and not due to population structure or technical artifacts), we calculate the Genomic Inflation Factor ($\lambda_{GC}$).Mathematically, $\lambda_{GC}$ is the ratio of the median observed $\chi^2$ statistic to the expected median $\chi^2$ statistic under the null hypothesis (which is approximately $0.454$). We can do this in R using the following script: 
 ```
 # Function to calculate Lambda GC
