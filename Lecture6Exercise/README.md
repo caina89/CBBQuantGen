@@ -14,26 +14,39 @@ We will create three SNP effect files. For the phenotype with 1 major SNP effect
 
 ```
 for N in 1 5 1000; do
-    echo "--- Simulating $N causal SNPs ---"
+    echo "--- Simulating $N causal SNPs with PLINK 2 ---"
     
-    # 1. Generate the effects file safely using R
-    Rscript generate_effects.R allchr.EUR.biallelicsnps_unrelated_pruned.bim $N sim_$N
+    # 1. Generate effect sizes
+    # Replace 1kg_eur.bim with 1kg_eur.pvar if using pgen format
+    Rscript simulate_pheno.R allchr.EUR.biallelicsnps_unrelated_pruned.bim $N sim_$N
     
-    # 2. Run PLINK Score
-    # We use --double-id to prevent issues with FID/IID if they are identical
-    plink --bfile allchr.EUR.biallelicsnps_unrelated_pruned \
-          --score sim_$N.effects 1 2 3 \
-          --out sim_$N
+    # 2. Run PLINK 2 Score
+    # 'cols=' determines what is output in the .sscore file
+    # We use '1 2' for SNP ID and Weight columns
+    plink2 --bfile allchr.EUR.biallelicsnps_unrelated_pruned \
+        --score sim_$N.effects 1 2 \
+        --out sim_$N
           
-    # 3. Scale to heritability 0.5 using a simple R one-liner
+    # 3. Final scaling in R (Using PLINK2's .sscore output)
+    # PLINK 2 outputs 'SCORE1_AVG' or 'SCORE1_SUM' depending on settings
     Rscript -e "
-        df <- read.table('sim_$N.profile', header=T);
-        vg <- var(df\$SCORE);
-        ve <- vg * (1 - 0.5) / 0.5;
-        df\$PHENO <- df\$SCORE + rnorm(nrow(df), 0, sqrt(ve));
-        write.table(df[,c('FID','IID','PHENO')], 'sim_$N.pheno', quote=F, row.names=F, sep='\t')
+        # PLINK 2 .sscore files usually have #IID or #FID
+        df <- read.table('sim_$N.sscore', header=T, comment.char='');
+        colnames(df)[1] <- 'IID'; # Standardize first column
+        
+        # PLINK 2 usually provides an average score (SCORE1_AVG)
+        # We'll use that to calculate variance
+        vg <- var(df\$SCORE1_AVG);
+        h2 <- 0.5;
+        ve <- vg * (1 - h2) / h2;
+        
+        df\$PHENO <- df\$SCORE1_AVG + rnorm(nrow(df), 0, sqrt(ve));
+        
+        # Output in standard PLINK format: FID IID PHENO
+        # If your .sscore has no FID, we duplicate IID
+        out <- data.frame(FID = df\$IID, IID = df\$IID, PHENO = df\$PHENO);
+        write.table(out, 'sim_$N.pheno', quote=F, row.names=F, sep='\t')
     "
-    echo "Done with $N. Check sim_$N.pheno"
 done
 ```
 ## Step 3: GWAS 
