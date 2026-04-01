@@ -41,18 +41,18 @@ for N in 1 5 1000; do
     "
 done
 ```
-## Step 3: GWAS 
+## Step 2: GWAS 
 Now we run the GWAS for all three phenotypes using `plink` 
 ```
 for N in 1 5 1000; do
     plink2 --bfile allchr.EUR.biallelicsnps_unrelated \
-           --pheno sim_$N.txt \
+           --pheno sim_$N.pheno \
            --covar allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec \
            --glm \
            --out gwas_results_sim$N
 done
 ```
-## Step 4: Look at results 
+## Step 3: Look at results 
 If we were to plot these (Manhattan plots), here is what the distribution of p-values would reveal:
 
 * 1 Major Effect: We will see a single, massive "skyscraper" (extremely low p-value) on one chromosome. The rest of the genome will be a flat line of noise. This is typical of Mendelian-like traits or strong drug-response loci.
@@ -60,7 +60,8 @@ If we were to plot these (Manhattan plots), here is what the distribution of p-v
 * 1000 Small Effects: This is the Infinitesimal Model. We might see many small "bumps" or maybe nothing even hits the genome-wide significance line ($5 \times 10^{-8}$) since our sample size is small (like the 1000 Genomes $N \approx 500$).
 
 Plot your results using the `plot_manhattan_qqplots.R` in R or `plot_manhattan_qqplots.py` in python.  
-## Step 5: Calculate genomic inflation factor $\lambda_{GC}$
+
+## Step 4: Calculate genomic inflation factor $\lambda_{GC}$
 To numerically verify if our GWAS is well-calibrated (meaning the signal is truly genetic and not due to population structure or technical artifacts), we calculate the Genomic Inflation Factor ($\lambda_{GC}$).Mathematically, $\lambda_{GC}$ is the ratio of the median observed $\chi^2$ statistic to the expected median $\chi^2$ statistic under the null hypothesis (which is approximately $0.454$). We can do this in R using the following script: 
 ```
 # Function to calculate Lambda GC
@@ -75,9 +76,9 @@ calculate_lambda <- function(p_values) {
 }
 
 # Apply to your three simulated scenarios
-files <- c("gwas_results_1.PHENO1.glm.linear", 
-           "gwas_results_5.PHENO1.glm.linear", 
-           "gwas_results_1000.PHENO1.glm.linear")
+files <- c("gwas_results_sim1.PHENO1.glm.linear", 
+           "gwas_results_sim5.PHENO1.glm.linear", 
+           "gwas_results_sim1000.PHENO1.glm.linear")
 
 for (f in files) {
   data <- read.table(f, header = TRUE)
