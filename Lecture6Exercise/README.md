@@ -12,44 +12,46 @@ We will continue to use `plink` as in previous exercises
 ## Step 1: Define causal SNPs and simulate phenotypes 
 We will create three SNP effect files. For the phenotype with 1 major SNP effect, we pick a SNP with a decent MAF so the variance is high. As before, we assume all causal SNPs are not in LD with each other, as such we use the `allchr.EUR.biallelicsnps_unrelated_pruned` genotype file for selecting causal SNPs. 
 ```
-# 1. Major (1 SNP)
-shuf -n 1 allchr.EUR.biallelicsnps_unrelated_pruned.bim | awk '{print $2, "A1", 1.0}' > causal_1.txt
+# Filter for common SNPs and get a list of all available SNPs
+plink2 --bfile allchr.EUR.biallelicsnps_unrelated_pruned --maf 0.05 --write-snplist --out common_snps
 
-# 2. Moderate (5 SNPs)
-shuf -n 5 allchr.EUR.biallelicsnps_unrelated_pruned.bim | awk '{print $2, "A1", rand()}' > causal_5.txt
+# Get SNP allele map
+cut -f 2,5 allchr.EUR.biallelicsnps_unrelated_pruned.bim > snp_allele_map.txt 
 
-# 3. Small (1000 SNPs)
-shuf -n 1000 allchr.EUR.biallelicsnps_unrelated_pruned.bim | awk '{print $2, "A1", rand()}' > causal_1000.txt
+# Select causal SNPs 
+for N in 1 5 1000; do
+    echo "Processing $N causal SNPs..."
+    
+    # 1. Select causal SNPs and match them with their real A1 allele
+    shuf -n $N common_snps.snplist > temp_causal.txt
+    grep -Fwf temp_causal.txt snp_allele_map.txt > causal_$N.txt
+done 
 ```
 
 ## Step 2: Calculate Genetic Scores and Add Noise (R)
 For each set of causal variants selectged, use the R script `simulate_pheno.R` to first generate random effect sizes for SNP effects at all causal SNPs. Then, obtain the genotypes of all causal SNPs and use the generated random effect sizes per causal SNP to make phenotypes using `plink`. Finally, use the R script `simulate_pheno.R` again to scale the phenotype such that $h^2$ is exactly 0.5. 
 ```
 for N in 1 5 1000; do
-    echo "Processing $N causal SNPs..."
-    
-    # 1. Create effect sizes file in R
+    # Generate effect sizes in R using the real alleles
     Rscript simulate_pheno.R causal_$N.txt sim_$N
-    
-    # 2. Calculate Genetic Risk Score (GRS) using PLINK
-    # --score uses: SNP_ID (col 1), Allele (col 2), Score (col 3)
-    plink --bfile allchr.EUR.biallelicsnps_unrelated \
+    # Calculate Genetic Risk Score (GRS)
+    # Now col 1 is SNP, col 2 is the correct A1, col 3 is Beta
+    plink2 --bfile allchr.EUR.biallelicsnps_unrelated_pruned \
           --score sim_$N.effects 1 2 3 \
           --out sim_$N
-          
-    # 3. Run R script again to add noise and scale to h2=0.5
+    # Final scaling in R
     Rscript simulate_pheno.R causal_$N.txt sim_$N
 done
 ```
 ## Step 3: GWAS 
 Now we run the GWAS for all three phenotypes using `plink` 
 ```
-for i in 1 5 1000; do
+for N in 1 5 1000; do
     plink2 --bfile allchr.EUR.biallelicsnps_unrelated \
-           --pheno pheno_$i.txt \
+           --pheno sim_$N.txt \
            --covar allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec \
            --glm \
-           --out gwas_results_$i
+           --out gwas_results_sim$N
 done
 ```
 ## Step 4: Look at results 
