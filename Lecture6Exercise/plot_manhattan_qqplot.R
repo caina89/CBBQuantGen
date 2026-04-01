@@ -1,18 +1,21 @@
 # Install if necessary
 if (!require("qqman")) install.packages("qqman")
+if (!require("data.table")) install.packages("data.table")
+
 library(qqman)
+library(data.table)
 
 # List of your GWAS results from the previous step
-files <- c("gwas_results_sim1.PHENO1.glm.linear", 
-           "gwas_results_sim5.PHENO1.glm.linear", 
-           "gwas_results_sim1000.PHENO1.glm.linear")
+files <- c("gwas_results_sim1.PHENO.glm.linear", 
+           "gwas_results_sim5.PHENO.glm.linear", 
+           "gwas_results_sim1000.PHENO.glm.linear")
 
 # Set up a 3x2 plotting grid (3 rows for scenarios, 2 columns for Manhattan/QQ)
 par(mfrow=c(3, 2))
 
 for (f in files) {
   # Load PLINK 2 output
-  gwas <- read.table(f, header=T)
+  gwas <- fread(f, header=T, data.table=F)
   
   # PLINK 2 column names: #CHROM, POS, ID, REF, ALT, A1, TEST, OBS_CT, BETA, SE, T_STAT, P
   # We need: CHR, BP, P, SNP
