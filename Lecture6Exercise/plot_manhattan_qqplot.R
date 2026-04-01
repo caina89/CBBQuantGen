@@ -14,6 +14,8 @@ files <- c("gwas_results_sim1.PHENO.glm.linear",
 par(mfrow=c(3, 2))
 
 for (f in files) {
+
+  pdf(paste0(f,".pdf"), height=10, width=10)
   # Load PLINK 2 output
   gwas <- fread(f, header=T, data.table=F)
   colnames(gwas)[1]="CHROM"
@@ -29,10 +31,13 @@ for (f in files) {
   trait_name <- gsub("gwas_results_", "", f)
   
   # 1. Manhattan Plot
-  manhattan(df, main=paste("Manhattan:", trait_name), 
+  a=manhattan(df, main=paste("Manhattan:", trait_name), 
             suggestiveline = -log10(1e-5), genomewideline = -log10(5e-8),
             col = c("blue4", "orange3"))
   
   # 2. QQ Plot
-  qq(df$P, main=paste("QQ Plot:", trait_name))
+  b=qq(df$P, main=paste("QQ Plot:", trait_name))
+  print(a)
+  print(b)
+  dev.off()
 }
