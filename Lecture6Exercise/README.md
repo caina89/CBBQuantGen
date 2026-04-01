@@ -21,7 +21,7 @@ for N in 1 5 1000; do
     
     # 2. Run PLINK Score
     # We use --double-id to prevent issues with FID/IID if they are identical
-    plink --bfile 1kg_eur \
+    plink --bfile allchr.EUR.biallelicsnps_unrelated_pruned \
           --score sim_$N.effects 1 2 3 \
           --out sim_$N
           
