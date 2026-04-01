@@ -13,49 +13,17 @@ We will continue to use `plink` as in previous exercises
 We will create three SNP effect files. For the phenotype with 1 major SNP effect, we pick a SNP with a decent MAF so the variance is high. As before, we assume all causal SNPs are not in LD with each other, as such we use the `allchr.EUR.biallelicsnps_unrelated_pruned` genotype file for selecting causal SNPs. 
 ```
 # 1. Major (1 SNP)
-shuf -n 1 allchr.EUR.biallelicsnps_unrelated_pruned.bim | awk '{print $2, "A1", 1.0}' > effects_1.txt
+shuf -n 1 allchr.EUR.biallelicsnps_unrelated_pruned.bim | awk '{print $2, "A1", 1.0}' > causal_1.txt
 
 # 2. Moderate (5 SNPs)
-shuf -n 5 allchr.EUR.biallelicsnps_unrelated_pruned.bim | awk '{print $2, "A1", rand()}' > effects_5.txt
+shuf -n 5 allchr.EUR.biallelicsnps_unrelated_pruned.bim | awk '{print $2, "A1", rand()}' > causal_5.txt
 
 # 3. Small (1000 SNPs)
-shuf -n 1000 allchr.EUR.biallelicsnps_unrelated_pruned.bim | awk '{print $2, "A1", rand()}' > effects_1000.txt
+shuf -n 1000 allchr.EUR.biallelicsnps_unrelated_pruned.bim | awk '{print $2, "A1", rand()}' > causal_1000.txt
 ```
 
 ## Step 2: Calculate Genetic Scores and Add Noise (R)
-This following R script ensures that regardless of the number of SNPs, the final $h^2$ is exactly 0.5.
-```
-args <- commandArgs(trailingOnly = TRUE)
-causal_file <- args[1]
-output_name <- args[2]
-h2 <- 0.5
-
-# 1. Generate random effect sizes for the causal SNPs
-snps <- read.table(causal_file, header = FALSE)
-# Assume additive model: SNP_ID, Effect_Allele (we'll just use 'A'), Beta
-# Note: In real data, you'd check the BIM file for the actual A1 allele.
-effects <- data.frame(SNP = snps$V1, A1 = "A", Beta = rnorm(nrow(snps)))
-write.table(effects, paste0(output_name, ".effects"), quote=F, row.names=F, col.names=F)
-
-# 2. (Run PLINK externally to get the GRS - see Bash step below)
-
-# 3. Scale phenotype (to be run after PLINK)
-if (file.exists(paste0(output_name, ".profile"))) {
-    grs_data <- read.table(paste0(output_name, ".profile"), header = TRUE)
-    genetic_var <- var(grs_data$SCORE)
-    
-    # Calculate required environmental variance: h2 = Vg / (Vg + Ve)
-    # Ve = Vg * (1 - h2) / h2
-    env_var <- genetic_var * (1 - h2) / h2
-    noise <- rnorm(nrow(grs_data), mean = 0, sd = sqrt(env_var))
-    
-    phenotype <- grs_data$SCORE + noise
-    
-    final_pheno <- data.frame(FID = grs_data$FID, IID = grs_data$IID, PHENO = phenotype)
-    write.table(final_pheno, paste0(output_name, ".pheno"), quote=F, row.names=F, sep="\t")
-}
-```
-Then get the phenotypes using the .bed, .bim and .fam files containing the genotypes of unrelated individuals in 1000 Genomes European samples in `plink`
+For each set of causal variants selectged, use the R script `simulate_pheno.R` to first generate random effect sizes for SNP effects at all causal SNPs. Then, obtain the genotypes of all causal SNPs and use the generated random effect sizes per causal SNP to make phenotypes using `plink`. Finally, use the R script `simulate_pheno.R` again to scale the phenotype such that $h^2$ is exactly 0.5. 
 ```
 for N in 1 5 1000; do
     echo "Processing $N causal SNPs..."
