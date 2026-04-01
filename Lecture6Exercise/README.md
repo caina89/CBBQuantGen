@@ -7,7 +7,7 @@ To do this we will require:
 * PCA of 1KGP European unrelated individuals performed using LD-pruned genotypes `allchr.EUR.biallelicsnps_unrelated_pruned`, in the file `allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec`. This will be used as fixed effect covariates. 
 
 ## Software 
-We will continue to use `plink` and `gcta64` as in previous exercises
+We will continue to use `plink` as in previous exercises
 
 ## Step 1: Define causal SNPs and simulate phenotypes 
 We will create three SNP effect files. For the phenotype with 1 major SNP effect, we pick a SNP with a decent MAF so the variance is high. As before, we assume all causal SNPs are not in LD with each other, as such we use the `allchr.EUR.biallelicsnps_unrelated_pruned` genotype file for selecting causal SNPs. 
