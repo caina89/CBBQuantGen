@@ -17,7 +17,7 @@ for N in 1 5 1000; do
     echo "--- Simulating $N causal SNPs ---"
     
     # 1. Generate the effects file safely using R
-    Rscript generate_effects.R 1kg_eur.bim $N sim_$N
+    Rscript generate_effects.R allchr.EUR.biallelicsnps_unrelated_pruned.bim $N sim_$N
     
     # 2. Run PLINK Score
     # We use --double-id to prevent issues with FID/IID if they are identical
