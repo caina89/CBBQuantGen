@@ -16,10 +16,11 @@ par(mfrow=c(3, 2))
 for (f in files) {
   # Load PLINK 2 output
   gwas <- fread(f, header=T, data.table=F)
+  colnames(gwas)[1]="CHROM"
   
   # PLINK 2 column names: #CHROM, POS, ID, REF, ALT, A1, TEST, OBS_CT, BETA, SE, T_STAT, P
   # We need: CHR, BP, P, SNP
-  df <- data.frame(SNP=gwas$ID, CHR=gwas$X.CHROM, BP=gwas$POS, P=gwas$P)
+  df <- data.frame(SNP=gwas$ID, CHR=gwas$CHROM, BP=gwas$POS, P=gwas$P)
   
   # Remove NAs for plotting
   df <- df[!is.na(df$P), ]
