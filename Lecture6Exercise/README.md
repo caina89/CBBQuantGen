@@ -14,37 +14,29 @@ We will create three SNP effect files. For the phenotype with 1 major SNP effect
 
 ```
 for N in 1 5 1000; do
-    echo "--- Simulating $N causal SNPs with PLINK 2 ---"
+    echo "Processing $N SNPs..."
     
-    # 1. Generate effect sizes
-    # Replace 1kg_eur.bim with 1kg_eur.pvar if using pgen format
+    # 1. Generate effects
     Rscript simulate_pheno.R allchr.EUR.biallelicsnps_unrelated_pruned.bim $N sim_$N
     
-    # 2. Run PLINK 2 Score
-    # 'cols=' determines what is output in the .sscore file
-    # We use '1 2' for SNP ID and Weight columns
+    # 2. PLINK 2 Score
+    # 'header' is omitted because our R script has no header
+    # 1=ID, 2=Allele, 3=Weight
     plink2 --bfile allchr.EUR.biallelicsnps_unrelated_pruned \
-        --score sim_$N.effects 1 2 \
-        --out sim_$N
-          
-    # 3. Final scaling in R (Using PLINK2's .sscore output)
-    # PLINK 2 outputs 'SCORE1_AVG' or 'SCORE1_SUM' depending on settings
+           --score sim_$N.effects 1 2 3 \
+           --out sim_$N \
+    
+    # 3. Scale Phenotype
+    # PLINK2 sscore header: #IID, (sometimes FID), NMISS_ALL_CTS, SCORE1_AVG
     Rscript -e "
-        # PLINK 2 .sscore files usually have #IID or #FID
         df <- read.table('sim_$N.sscore', header=T, comment.char='');
-        colnames(df)[1] <- 'IID'; # Standardize first column
-        
-        # PLINK 2 usually provides an average score (SCORE1_AVG)
-        # We'll use that to calculate variance
-        vg <- var(df\$SCORE1_AVG);
+        score_col <- grep('SCORE1_AVG', colnames(df));
+        vg <- var(df[,score_col]);
         h2 <- 0.5;
         ve <- vg * (1 - h2) / h2;
-        
-        df\$PHENO <- df\$SCORE1_AVG + rnorm(nrow(df), 0, sqrt(ve));
-        
-        # Output in standard PLINK format: FID IID PHENO
-        # If your .sscore has no FID, we duplicate IID
-        out <- data.frame(FID = df\$IID, IID = df\$IID, PHENO = df\$PHENO);
+        df\$PHENO <- df[,score_col] + rnorm(nrow(df), 0, sqrt(ve));
+        # Standard 3-column output
+        out <- data.frame(FID = df[[2]], IID = df[[2]], PHENO = df\$PHENO);
         write.table(out, 'sim_$N.pheno', quote=F, row.names=F, sep='\t')
     "
 done
