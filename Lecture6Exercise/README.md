@@ -42,9 +42,9 @@ process_pheno <- function(score_file, out_name) {
 }
 
 # Run for all three
-process_pheno("score_1.sscore", "pheno_1.txt")
-process_pheno("score_5.sscore", "pheno_5.txt")
-process_pheno("score_1000.sscore", "pheno_1000.txt")
+process_pheno("pheno_1.txt","score_1.sscore")
+process_pheno("pheno_5.txt","score_5.sscore")
+process_pheno("pheno_1000.txt","score_1000.sscore")
 ```
 ## Step 3: GWAS 
 Now we run the GWAS for all three phenotypes using `plink` 
