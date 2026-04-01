@@ -3,9 +3,9 @@ if (!require("qqman")) install.packages("qqman")
 library(qqman)
 
 # List of your GWAS results from the previous step
-files <- c("gwas_results_1.PHENO1.glm.linear", 
-           "gwas_results_5.PHENO1.glm.linear", 
-           "gwas_results_1000.PHENO1.glm.linear")
+files <- c("gwas_results_sim1.PHENO1.glm.linear", 
+           "gwas_results_sim5.PHENO1.glm.linear", 
+           "gwas_results_sim1000.PHENO1.glm.linear")
 
 # Set up a 3x2 plotting grid (3 rows for scenarios, 2 columns for Manhattan/QQ)
 par(mfrow=c(3, 2))
