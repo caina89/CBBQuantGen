@@ -1,29 +1,31 @@
 args <- commandArgs(trailingOnly = TRUE)
-causal_file <- args[1]
-output_name <- args[2]
+bim_file <- args[1]     # 1kg_eur.bim
+n_causal <- as.numeric(args[2])
+output_prefix <- args[3]
 h2 <- 0.5
 
-# 1. Generate random effect sizes for the causal SNPs
-snps <- read.table(causal_file, header = FALSE)
-# Assume additive model: SNP_ID, Effect_Allele (we'll just use 'A'), Beta
-# Note: In real data, you'd check the BIM file for the actual A1 allele.
-effects <- data.frame(SNP = snps$V1, A1 = "A", Beta = rnorm(nrow(snps)))
-write.table(effects, paste0(output_name, ".effects"), quote=F, row.names=F, col.names=F)
+# Load the BIM file
+bim <- read.table(bim_file, header = FALSE)
+colnames(bim) <- c("CHR", "SNP", "CM", "BP", "A1", "A2")
 
-# 2. (Run PLINK externally to get the GRS - see Bash step below)
+# 1. Randomly sample causal SNPs from the BIM
+# We sample from the whole BIM to ensure they exist
+set.seed(42) # For reproducibility
+causal_indices <- sample(1:nrow(bim), n_causal)
+causal_snps <- bim[causal_indices, ]
 
-# 3. Scale phenotype (to be run after PLINK)
-if (file.exists(paste0(output_name, ".profile"))) {
-    grs_data <- read.table(paste0(output_name, ".profile"), header = TRUE)
-    genetic_var <- var(grs_data$SCORE)
-    
-    # Calculate required environmental variance: h2 = Vg / (Vg + Ve)
-    # Ve = Vg * (1 - h2) / h2
-    env_var <- genetic_var * (1 - h2) / h2
-    noise <- rnorm(nrow(grs_data), mean = 0, sd = sqrt(env_var))
-    
-    phenotype <- grs_data$SCORE + noise
-    
-    final_pheno <- data.frame(FID = grs_data$FID, IID = grs_data$IID, PHENO = phenotype)
-    write.table(final_pheno, paste0(output_name, ".pheno"), quote=F, row.names=F, sep="\t")
-}
+# 2. Assign effect sizes
+# Column 1: SNP ID, Column 2: Effect Allele (A1), Column 3: Beta
+effects <- data.frame(
+    SNP = causal_snps$SNP,
+    A1 = causal_snps$A1,
+    Beta = rnorm(n_causal, mean = 0, sd = 1)
+)
+
+# Write the effects file for PLINK --score
+write.table(effects, paste0(output_prefix, ".effects"), 
+            quote = FALSE, row.names = FALSE, col.names = FALSE, sep = "\t")
+
+# Save the list of causal SNPs for record-keeping
+write.table(causal_snps$SNP, paste0(output_prefix, ".causal_list"), 
+            quote = FALSE, row.names = FALSE, col.names = FALSE)
