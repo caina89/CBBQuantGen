@@ -1,30 +1,31 @@
 args <- commandArgs(trailingOnly = TRUE)
-bim_pvar_file <- args[1]
+bim_file <- args[1]
 n_causal <- as.numeric(args[2])
 output_prefix <- args[3]
 
-# Read the variant file (handles .bim or .pvar)
-# PLINK2 pvar files might have a header starting with #
-is_pvar <- grepl(".pvar$", bim_pvar_file)
-if(is_pvar){
-  vars <- read.table(bim_pvar_file, comment.char = "#")
-  colnames(vars)[1:5] <- c("CHROM", "POS", "ID", "REF", "ALT")
-} else {
-  vars <- read.table(bim_pvar_file)
-  colnames(vars)[1:6] <- c("CHR", "SNP", "CM", "BP", "A1", "A2")
-  colnames(vars)[2] <- "ID" # Standardize column name
-}
+# Read the BIM file
+# 1:CHR, 2:ID, 3:CM, 4:BP, 5:A1 (Effect), 6:A2 (Other)
+vars <- read.table(bim_file, stringsAsFactors=FALSE)
+colnames(vars) <- c("CHR", "ID", "CM", "BP", "A1", "A2")
 
-# 1. Randomly sample causal SNPs
+# 1. Filter out variants with no ID or missing alleles
+vars <- vars[vars$ID != "." & vars$A1 != "0", ]
+
+# 2. Handle potential duplicate IDs by creating a unique key if necessary
+# But for simplicity, we'll just unique them
+vars <- vars[!duplicated(vars$ID), ]
+
+# 3. Randomly sample
 set.seed(42)
-# Filter out variants with missing IDs if necessary
-vars <- vars[vars$ID != ".", ]
-causal_indices <- sample(1:nrow(vars), n_causal)
-causal_vars <- vars[causal_indices, ]
+causal_vars <- vars[sample(nrow(vars), n_causal), ]
 
-# 2. Create the effects file (SNP ID, then Beta)
+# 4. Create the effects file
+# Column 1: ID
+# Column 2: The EXACT allele PLINK sees as A1
+# Column 3: The Weight
 effects <- data.frame(
     ID = causal_vars$ID,
+    A1 = causal_vars$A1,
     Beta = rnorm(n_causal, mean = 0, sd = 1)
 )
 
