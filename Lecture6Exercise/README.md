@@ -76,9 +76,9 @@ calculate_lambda <- function(p_values) {
 }
 
 # Apply to your three simulated scenarios
-files <- c("gwas_results_sim1.PHENO1.glm.linear", 
-           "gwas_results_sim5.PHENO1.glm.linear", 
-           "gwas_results_sim1000.PHENO1.glm.linear")
+files <- c("gwas_results_sim1.PHENO.glm.linear", 
+           "gwas_results_sim5.PHENO.glm.linear", 
+           "gwas_results_sim1000.PHENO.glm.linear")
 
 for (f in files) {
   data <- read.table(f, header = TRUE)
