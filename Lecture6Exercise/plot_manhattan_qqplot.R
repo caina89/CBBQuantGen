@@ -14,6 +14,7 @@ files <- c("gwas_results_sim1.PHENO.glm.linear",
 par(mfrow=c(3, 2))
 
 for (f in files) {
+  print(f)
 
   pdf(paste0(f,".pdf"), height=10, width=10)
   # Load PLINK 2 output
