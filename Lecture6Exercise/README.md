@@ -33,7 +33,7 @@ for N in 1 5 1000; do
     
     # 2. Calculate Genetic Risk Score (GRS) using PLINK
     # --score uses: SNP_ID (col 1), Allele (col 2), Score (col 3)
-    plink --bfile 1kg_eur \
+    plink --bfile allchr.EUR.biallelicsnps_unrelated \
           --score sim_$N.effects 1 2 3 \
           --out sim_$N
           
