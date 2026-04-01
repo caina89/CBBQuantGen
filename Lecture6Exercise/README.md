@@ -25,26 +25,53 @@ shuf -n 1000 allchr.EUR.biallelicsnps_unrelated_pruned.bim | awk '{print $2, "A1
 ## Step 2: Calculate Genetic Scores and Add Noise (R)
 This following R script ensures that regardless of the number of SNPs, the final $h^2$ is exactly 0.5.
 ```
-library(data.table)
+args <- commandArgs(trailingOnly = TRUE)
+causal_file <- args[1]
+output_name <- args[2]
+h2 <- 0.5
 
-process_pheno <- function(score_file, out_name) {
-  df <- fread(score_file)
-  G <- df$SCORE1_SUM
-  
-  # For h2 = 0.5, Var(G) must equal Var(E)
-  var_G <- var(G)
-  E <- rnorm(length(G), mean = 0, sd = sqrt(var_G))
-  Y <- G + E
-  
-  # Format for PLINK (FID, IID, Pheno)
-  pheno_out <- data.frame(FID = df$`#FID`, IID = df$IID, PHENO = Y)
-  write.table(pheno_out, out_name, row.names=F, col.names=F, quote=F)
+# 1. Generate random effect sizes for the causal SNPs
+snps <- read.table(causal_file, header = FALSE)
+# Assume additive model: SNP_ID, Effect_Allele (we'll just use 'A'), Beta
+# Note: In real data, you'd check the BIM file for the actual A1 allele.
+effects <- data.frame(SNP = snps$V1, A1 = "A", Beta = rnorm(nrow(snps)))
+write.table(effects, paste0(output_name, ".effects"), quote=F, row.names=F, col.names=F)
+
+# 2. (Run PLINK externally to get the GRS - see Bash step below)
+
+# 3. Scale phenotype (to be run after PLINK)
+if (file.exists(paste0(output_name, ".profile"))) {
+    grs_data <- read.table(paste0(output_name, ".profile"), header = TRUE)
+    genetic_var <- var(grs_data$SCORE)
+    
+    # Calculate required environmental variance: h2 = Vg / (Vg + Ve)
+    # Ve = Vg * (1 - h2) / h2
+    env_var <- genetic_var * (1 - h2) / h2
+    noise <- rnorm(nrow(grs_data), mean = 0, sd = sqrt(env_var))
+    
+    phenotype <- grs_data$SCORE + noise
+    
+    final_pheno <- data.frame(FID = grs_data$FID, IID = grs_data$IID, PHENO = phenotype)
+    write.table(final_pheno, paste0(output_name, ".pheno"), quote=F, row.names=F, sep="\t")
 }
-
-# Run for all three
-process_pheno("pheno_1.txt","score_1.sscore")
-process_pheno("pheno_5.txt","score_5.sscore")
-process_pheno("pheno_1000.txt","score_1000.sscore")
+```
+Then get the phenotypes using the .bed, .bim and .fam files containing the genotypes of unrelated individuals in 1000 Genomes European samples in `plink`
+```
+for N in 1 5 1000; do
+    echo "Processing $N causal SNPs..."
+    
+    # 1. Create effect sizes file in R
+    Rscript simulate_pheno.R causal_$N.txt sim_$N
+    
+    # 2. Calculate Genetic Risk Score (GRS) using PLINK
+    # --score uses: SNP_ID (col 1), Allele (col 2), Score (col 3)
+    plink --bfile 1kg_eur \
+          --score sim_$N.effects 1 2 3 \
+          --out sim_$N
+          
+    # 3. Run R script again to add noise and scale to h2=0.5
+    Rscript simulate_pheno.R causal_$N.txt sim_$N
+done
 ```
 ## Step 3: GWAS 
 Now we run the GWAS for all three phenotypes using `plink` 
