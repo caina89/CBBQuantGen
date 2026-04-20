@@ -8,7 +8,7 @@ We want to simulate a phenotype with SNP heritability = 0.5 with the European un
 Download [GCTA](https://yanglab.westlake.edu.cn/software/gcta) using the following
 ```
 cd ~/bin
-wget [https://yanglab.westlake.edu.cn/software/gcta/bin/gcta-1.94.1-linux-kernel-3-x86_64.zip](https://yanglab.westlake.edu.cn/software/gcta/bin/gcta-1.95.1-linux-x86_64.zip)
+wget https://yanglab.westlake.edu.cn/software/gcta/bin/gcta-1.94.1-linux-kernel-3-x86_64.zip 
 unzip gcta-1.94.1-linux-kernel-3-x86_64.zip
 # Make the binary executable
 chmod +x gcta64
