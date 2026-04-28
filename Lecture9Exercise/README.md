@@ -91,6 +91,7 @@ We will get the following files:
 * `.summary` files will show us the PRS incremental $R^2$ (full model $R^2$ - null model $R^2$) at the P-value threshold that gives the highest $R^2$.
 * `.best` files will give us the PRS values for all individuals in the 20% test dataset at the best P-value threshold that gave the highest $R^2$.
 * `.prsice` files will give us the PRS incremental $R^2$ (full model $R^2$ - null model $R^2$) all P-value thresholds for comparison.
+
 For example, the `.summary` files for the avg and sum models for the 5 SNP model look like this:
 ```
 > head test_gwas_results_sim5_modelavg.summary
