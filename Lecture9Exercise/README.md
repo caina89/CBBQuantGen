@@ -7,12 +7,33 @@ In this exercise we use the three simulated phenotypes from exercise in Lecture 
 
 ## Software 
 We will continue to use `plink` as in previous exercises
-We will also use `prsice2` (pronounced "precise 2") for P+T PRS calculations
+We will also use `prsice2` (pronounced "precise 2") for P+T PRS, and `gcta64` for BLUP estimates 
 ```
 cd ~/bin 
 wget https://github.com/choishingwan/PRSice/releases/download/2.3.5/PRSice_linux.zip
 unzip PRSice_linux.zip
-``` 
+wget https://yanglab.westlake.edu.cn/software/gcta/bin/gcta-1.95.1-linux-x86_64.zip
+unzip gcta-1.95.1-linux-x86_64.zip
+```
+Note that gcta64 may throw an error in Euler as shown below:
+```
+> ~/bin/gcta-1.95.1-linux-x86_64/gcta64
+Error: No suitable fusermount binary found on the $PATH
+Error: $FUSERMOUNT_PROG not set
+
+Cannot mount AppImage, please check your FUSE setup.
+You might still be able to extract the contents of this AppImage 
+if you run it with the --appimage-extract option. 
+See https://github.com/AppImage/AppImageKit/wiki/FUSE 
+for more information
+open dir error: No such file or directory
+```
+If so, run the following 
+```
+~/bin/gcta-1.95.1-linux-x86_64/gcta64 --appimage-extract
+```
+This will create a new directory named `squashfs-root`. Inside that new directory, you will find the actual executable. It is usually located at `squashfs-root/AppRun` or `squashfs-root/usr/bin/gcta64`. 
+
 ## Step 1: Splitting the unrelated EUR dataset in 1000G Phase 3 
 We first want to split the unrelated EUR data in 1000G Phase 3 into a 80% GWAS discovery set, and a 20% PRS testing set.  
 ```
@@ -38,31 +59,115 @@ for N in 1 5 1000; do
     plink2 --bfile allchr.EUR.biallelicsnps_unrelated.discovery \
            --pheno sim_$N.pheno \
            --covar allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec \
-           --glm \
+           --glm hide-covar \
            --out discovery_gwas_results_sim$N
 done
 ## 
 ```
 ## Step 2: Getting PRS in the test 20% using P+T method  
-Here we want to try the C/P+T method where clumping is used to keep the top SNP (lowest P value) within a LD window (--clump-kb 250kb) where all SNPs with LD r2 > 0.1 are removed (--clump-r2 0.1), and all SNPs below P value of 1 (essentially all SNPs) are eligible to be the kept SNP (--clump-p 1.000000).  Note that the default PRS model is $PRS_j = \sum_i{\frac{S_i\times G_{ij}}{M_j}}$ (with --score avg) while in our simulated situations this may or may not work well for all architectures. We will therefore try the other PRS models $PRS_j = \sum_i{S_i\times G_{ij}}$ (with --score sum) and PRS_j = \frac{\sum_i({S_i\times G_{ij}}) - \text{Mean}(PRS)}{\text{SD}(PRS)} (with --score std). Also note we need to put in PCs as covariates as we have learnt that when most SNPs in the genome and included in PRS have no effect on phenotype (which is the case in our model where max 1000 causal SNPs), PRS defaults to capturing largest axes of variation in the genome (PCs). 
+Here we want to try the C/P+T method where 
+* clumping is used to keep the top SNP (lowest P value) within a LD window (--clump-kb 250kb) where all SNPs with LD r2 > 0.1 are removed (--clump-r2 0.1)
+* all SNPs below P value of 1 (essentially all SNPs) are eligible to be the kept SNP (--clump-p 1.000000)
+* Note that the default PRS model is $PRS_j = \sum_i{\frac{S_i\times G_{ij}}{M_j}}$ (with --score avg) while in our simulated situations this may or may not work well for all architectures. We will therefore try the other PRS models $PRS_j = \sum_i{S_i\times G_{ij}}$ (with --score sum) and $PRS_j = \frac{\sum_i({S_i\times G_{ij}}) - \text{Mean}(PRS)}{\text{SD}(PRS)}$ (with --score std).
+* Also note we need to put in PCs as covariates as we have learnt that when most SNPs in the genome and included in PRS have no effect on phenotype (which is the case in our model where max 1000 causal SNPs), PRS defaults to capturing largest axes of variation in the genome (PCs). 
 ```
 ## try the default model with --score avg 
 for N in 1 5 1000; do
     for model in $(echo avg sum std); do 
-        Rscript ~/bin/PRSice.R \
-            --prsice ~/bin/PRSice_linux \
-            --score $model \
-            --base discovery_gwas_results_sim$N \
+        ~/bin/PRSice_linux --score $model \
+            --base discovery_gwas_results_sim$N.PHENO.glm.linear \
+            --a1 A1 --a2 A0 --snp ID --bp POS  --stat BETA --pvalue P --base-maf A1_FREQ:0.05 \
             --target allchr.EUR.biallelicsnps_unrelated.test \
             --binary-target F \
+            --pheno sim_$N.pheno \
             --clump-kb 250kb --clump-p 1.000000 --clump-r2 0.100000 \
             --interval 5e-05 --upper 0.5 --lower 5e-08 --num-auto 22 \
-            --covar allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec \
-            --column-adapter ID:ID,BP:POS,CHR:#CHROM,A1:A1,A2:AX,P:P,OR:OR \
-            --out test_gwas_results_sim${N}_model${model}\
+            --cov allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec \
+            --out test_gwas_results_sim${N}_model${model}
     done
 done 
 ```
+We will get the following files: 
+* `.summary` files will show us the PRS incremental $R^2$ (full model $R^2$ - null model $R^2$) at the P-value threshold that gives the highest $R^2$.
+* `.best` files will give us the PRS values for all individuals in the 20% test dataset at the best P-value threshold that gave the highest $R^2$.
+* `.prsice` files will give us the PRS incremental $R^2$ (full model $R^2$ - null model $R^2$) all P-value thresholds for comparison.
+For example, the `.summary` files for the avg and sum models for the 5 SNP model look like this:
+```
+> head test_gwas_results_sim5_modelavg.summary
+Phenotype	Set	Threshold	PRS.R2	Full.R2	Null.R2	Prevalence	Coefficient	Standard.Error	P	Num_SNP
+-	Base	0.00155005	0.0616424	0.211573	0.15978	-	-90.872	51.7161	0.0840831	1442
+> head test_gwas_results_sim5_modelsum.summary
+Phenotype	Set	Threshold	PRS.R2	Full.R2	Null.R2	Prevalence	Coefficient	Standard.Error	P	Num_SNP
+-	Base	0.00155005	0.0616424	0.211573	0.15978	-	-0.031509	0.0179321	0.0840831	1442
+> head test_gwas_results_sim5_modelstd.summary
+Phenotype	Set	Threshold	PRS.R2	Full.R2	Null.R2	Prevalence	Coefficient	Standard.Error	P	Num_SNP
+-	Base	0.00155005	0.0616424	0.211573	0.15978	-	-0.0172822	0.00983546	0.0840831	1442
+```
+Ok seems no difference in this instance... maybe that's why defaults are good. :) We haven't touched a fringe situation where this matters it seems. Let's now look at the three different phenotypes that are all supposed to have h2 = 0.5 
+```
+> head test_gwas_results_sim1_modelavg.summary
+Phenotype	Set	Threshold	PRS.R2	Full.R2	Null.R2	Prevalence	Coefficient	Standard.Error	P	Num_SNP
+-	Base	0.00130005	0.108167	0.186389	0.0877093	-	167.206	70.0321	0.0201826	1471
+> head test_gwas_results_sim5_modelsum.summary
+Phenotype	Set	Threshold	PRS.R2	Full.R2	Null.R2	Prevalence	Coefficient	Standard.Error	P	Num_SNP
+-	Base	0.00155005	0.0616424	0.211573	0.15978	-	-90.872	51.7161	0.0840831	1442
+> head test_gwas_results_sim1000_modelstd.summary
+Phenotype	Set	Threshold	PRS.R2	Full.R2	Null.R2	Prevalence	Coefficient	Standard.Error	P	Num_SNP
+-	Base	0.00105005	0.191741	0.270406	0.0973269	-	104.022	31.1525	0.00146065	903
+```
+Ok now there are big differences - in terms of the P-value threshold at which C/P+T model decides to draw the line for best $R^2$, as well as the best $R^2$ itself. Notice none of them are close to h2=0.5, though it's pretty great for a small discovery cohort of N=231. Usually we don't get such high $R^2$ with much larger sample sizes - why? Our simulated phenotypes have much larger simulated SNP effects than SNP effects on most complex phenotypes.  
+## Step 3: Try getting BLUPs rather than C/P+T PRS predictions 
+Here since we have a small discovery and test cohort we can also try to get the BLUPs of this simulated phenotype and ask how well it predicts relatives to C/P+T. To do that we first need to format the summary statistics into what GCTA wants 
+```
+for N in 1 5 1000; do
+    awk 'BEGIN{OFS="\t"; print "SNP","A1","A2","freq","b","se","p","N"} 
+        NR>1 {print $3, $7, $4, $9, $12, $13, $15, $11}' \
+       discovery_gwas_results_sim$N.PHENO.glm.linear > discovery_gwas_results_sim${N}_for_gcta.ma
+done 
+```
+We then calculate the BLUP weights while adjusting for LD. We need a reference panel (like the genotypes of your discovery set or all of 1000 Genomes EUR as shown) to provide the LD structure. Here gcta64 learns what the shrinkage parameter lambda should be, and then use that to get the BLUP weights at every SNP. The shrinkage value is calculated as $\lambda = m(1/h^2 - 1)$, where $m$ is the number of SNPs and $h^2$ is the heritability. If unknown, --cojo-sblup 0.01 is often used as a starting heuristic.
+```
+for N in 1 5 1000; do
+    ~/bin/gcta-1.95.1-linux-x86_64/squashfs-root/AppRun --bfile allchr.EUR.biallelicsnps_unrelated \
+        --cojo-file discovery_gwas_results_sim${N}_for_gcta.ma \
+        --cojo-sblup 0.01 \
+        --thread-num 1 \
+        --out discovery_gwas_results_sim${N}
+done 
+```
+Finally, we have to apply the weights to our test dataset. The output from the previous step will be a file named blup_weights.sblup.cojo.
+```
+for N in 1 5 1000; do
+    ~/bin/gcta-1.95.1-linux-x86_64/squashfs-root/AppRun --bfile allchr.EUR.biallelicsnps_unrelated.test \
+        --score discovery_gwas_results_sim${N}.sblup.cojo 1 2 4 \
+        --out discovery_gwas_results_sim${N}_blup_prs
+```
+## Step 4: Compare BLUP vs C/P+T PRS 
+From PRSice2 we get incremental R2 for all P value thresholds between 0.5 and 5e-08 at intervals of 5e-05 (--interval 5e-05 --upper 0.5 --lower 5e-08). PRSice2 even tells you which is best in the .best file output. But we need to calculate this for BLUPs to compare them with the C/P+T, using the following R script: 
+```
+for (N in c(1,5,1000)){
+    # Load data
+    data <- read.table(paste0("discovery_gwas_results_sim",N,"_blup_prs.profile"), header=T)
+    pheno <- read.table(paste0("sim_",N,".pheno"), header=F)  
+    colnames(pheno)=c("FID","IID","pheno")
+    covar <- read.table("allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec", header=F)
+    colnames(covar)=c("FID","IID",paste0("PC",1:10))
+    merged <- merge(data, pheno, by="IID")
+    
+    # 1. Null Model (Covariates only)
+    null_model <- lm(pheno ~ PC1 + PC2 + PC3, data=merged)
+    r2_null <- summary(null_model)$r.squared
+    
+    # 2. Full Model (Covariates + PRS)
+    full_model <- lm(pheno ~ Age + Sex + PC1 + PC2 + PC3 + SCORE, data=merged)
+    r2_full <- summary(full_model)$r.squared
+    
+    # 3. Calculate Incremental R2
+    incremental_r2 <- r2_full - r2_null
+    print(paste("The PRS explains", round(incremental_r2 * 100, 2), "% of the phenotypic variance."))
+}
+``` 
+
 
 ## Lambda estimation using REML 
 REML uses likelihood function to estimate the Genetic Variance ($\sigma_g^2$) and the Residual Variance ($\sigma_e^2$). Their ratio then defines the $\lambda$ for BLUP/Ridge Regression. 
