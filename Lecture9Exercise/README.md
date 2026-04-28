@@ -34,9 +34,6 @@ plink2 --bfile allchr.EUR.biallelicsnps_unrelated \
        --make-bed \
        --out allchr.EUR.biallelicsnps_unrelated.test
 ## perform GWAS on all three simulated phenotypes in the discovery set only
-```
-Now let's get the GWAS performed all only the discovery 80% of EUR data.
-```
 for N in 1 5 1000; do
     plink2 --bfile allchr.EUR.biallelicsnps_unrelated.discovery \
            --pheno sim_$N.pheno \
@@ -44,9 +41,28 @@ for N in 1 5 1000; do
            --glm \
            --out discovery_gwas_results_sim$N
 done
+## 
 ```
 ## Step 2: Getting PRS in the test 20% using P+T method  
-
+Here we want to try the C/P+T method where clumping is used to keep the top SNP (lowest P value) within a LD window (--clump-kb 250kb) where all SNPs with LD r2 > 0.1 are removed (--clump-r2 0.1), and all SNPs below P value of 1 (essentially all SNPs) are eligible to be the kept SNP (--clump-p 1.000000).  Note that the default PRS model is $PRS_j = \sum_i{\frac{S_i\times G_{ij}}{M_j}}$ (with --score avg) while in our simulated situations this may or may not work well for all architectures. We will therefore try the other PRS models $PRS_j = \sum_i{S_i\times G_{ij}}$ (with --score sum) and PRS_j = \frac{\sum_i({S_i\times G_{ij}}) - \text{Mean}(PRS)}{\text{SD}(PRS)} (with --score std). Also note we need to put in PCs as covariates as we have learnt that when most SNPs in the genome and included in PRS have no effect on phenotype (which is the case in our model where max 1000 causal SNPs), PRS defaults to capturing largest axes of variation in the genome (PCs). 
+```
+## try the default model with --score avg 
+for N in 1 5 1000; do
+    for model in $(echo avg sum std); do 
+        Rscript ~/bin/PRSice.R \
+            --prsice ~/bin/PRSice_linux \
+            --score $model \
+            --base discovery_gwas_results_sim$N \
+            --target allchr.EUR.biallelicsnps_unrelated.test \
+            --binary-target F \
+            --clump-kb 250kb --clump-p 1.000000 --clump-r2 0.100000 \
+            --interval 5e-05 --upper 0.5 --lower 5e-08 --num-auto 22 \
+            --covar allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec \
+            --column-adapter ID:ID,BP:POS,CHR:#CHROM,A1:A1,A2:AX,P:P,OR:OR \
+            --out test_gwas_results_sim${N}_model${model}\
+    done
+done 
+```
 
 ## Lambda estimation using REML 
 REML uses likelihood function to estimate the Genetic Variance ($\sigma_g^2$) and the Residual Variance ($\sigma_e^2$). Their ratio then defines the $\lambda$ for BLUP/Ridge Regression. 
