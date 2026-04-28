@@ -168,7 +168,7 @@ for (N in c(1,5,1000)){
 }
 ``` 
 
-
+# Extra stuff 
 ## Lambda estimation using REML 
 REML uses likelihood function to estimate the Genetic Variance ($\sigma_g^2$) and the Residual Variance ($\sigma_e^2$). Their ratio then defines the $\lambda$ for BLUP/Ridge Regression. 
 To demonstrate this we use the p3d or lme4 R package, adapted for genomic data in the R package rrBLUP, as shown in `reml_lambda.R`. 
