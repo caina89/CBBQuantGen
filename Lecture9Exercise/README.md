@@ -1,3 +1,53 @@
+# Tutorial for Lecture 9 - Prediction 
+In this exercise we use the three simulated phenotypes from exercise in Lecture 6: one with 1 major causal effect, one with 5 moderate causal effects, one with 1000 small causal effects, each accounting for heritablity = 0.5. You'd have already performed their GWAS in lecture 6. 
+
+## Data 
+* Genotypes of 1KGP European unrelated individuals we have used in Lecture 4 and Lecture 5 Excercises `allchr.EUR.biallelicsnps_unrelated`
+* PCA of 1KGP European unrelated individuals performed using LD-pruned genotypes `allchr.EUR.biallelicsnps_unrelated_pruned`, in the file `allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec`. This will be used as fixed effect covariates. 
+
+## Software 
+We will continue to use `plink` as in previous exercises
+We will also use `prsice2` (pronounced "precise 2") for P+T PRS calculations
+```
+cd ~/bin 
+wget https://github.com/choishingwan/PRSice/releases/download/2.3.5/PRSice_linux.zip
+unzip PRSice_linux.zip
+``` 
+## Step 1: Splitting the unrelated EUR dataset in 1000G Phase 3 
+We first want to split the unrelated EUR data in 1000G Phase 3 into a 80% GWAS discovery set, and a 20% PRS testing set.  
+```
+## Get the 80/20 split of the 1000G Phase 3 EUR dataset 
+Rscript -e "
+    fam=read.table("allchr.EUR.biallelicsnps_unrelated.fam");
+    fam_dis=fam[sample(nrow(fam),0.8*nrow(fam),replace=F),];
+    fam_test=fam[-which(fam$V1%in%fam_dis$V1),];
+    write.table(fam_dis, 'allchr.EUR.biallelicsnps_unrelated.discovery.fam', quote=F, row.names=F, sep='\t');
+    write.table(fam_test, 'allchr.EUR.biallelicsnps_unrelated.test.fam', quote=F, row.names=F, sep='\t')
+"
+## Output the 80/20 split genotype files
+plink2 --bfile allchr.EUR.biallelicsnps_unrelated \
+       --keep allchr.EUR.biallelicsnps_unrelated.discovery.fam \
+       --make-bed \
+       --out allchr.EUR.biallelicsnps_unrelated.discovery
+plink2 --bfile allchr.EUR.biallelicsnps_unrelated \
+       --keep allchr.EUR.biallelicsnps_unrelated.test.fam \
+       --make-bed \
+       --out allchr.EUR.biallelicsnps_unrelated.test
+## perform GWAS on all three simulated phenotypes in the discovery set only
+```
+Now let's get the GWAS performed all only the discovery 80% of EUR data.
+```
+for N in 1 5 1000; do
+    plink2 --bfile allchr.EUR.biallelicsnps_unrelated.discovery \
+           --pheno sim_$N.pheno \
+           --covar allchr.EUR.biallelicsnps_unrelated_pruned_pca.eigenvec \
+           --glm \
+           --out discovery_gwas_results_sim$N
+done
+```
+## Step 2: Getting PRS in the test 20% using P+T method  
+
+
 ## Lambda estimation using REML 
 REML uses likelihood function to estimate the Genetic Variance ($\sigma_g^2$) and the Residual Variance ($\sigma_e^2$). Their ratio then defines the $\lambda$ for BLUP/Ridge Regression. 
 To demonstrate this we use the p3d or lme4 R package, adapted for genomic data in the R package rrBLUP, as shown in `reml_lambda.R`. 
